@@ -15,4 +15,4 @@ Grupo 2 : https://www.figma.com/design/HD1vK6dSyNRxFuPE80wTmp/Prot%C3%B3tipos-de
 
 |Desenvolvedor FrontEnd|Desenvolvedor BackEnd|Desenvolvedor Full Stack|QA|
 |---|---|---|---|
-|||Marcello Ronald||
+|Matheus Augusto||Marcello Ronald||
