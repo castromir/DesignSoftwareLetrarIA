@@ -17,3 +17,4 @@ Design Final : [(Modelo unificado - [Em produção])](https://www.figma.com/desi
 |---|---|---|---|---|---|
 |Matheus Augusto|Nicole Liecheski|Marcello Ronald||Amanda |Caio Castro|
 |||||Marcello Ronald||
+|||||Gabriel Mota||
