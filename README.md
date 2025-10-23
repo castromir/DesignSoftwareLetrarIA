@@ -13,6 +13,6 @@ Grupo 2 : https://www.figma.com/design/HD1vK6dSyNRxFuPE80wTmp/Prot%C3%B3tipos-de
 
 ## Papeis
 
-|Desenvolvedor FrontEnd|Desenvolvedor BackEnd|Desenvolvedor Full Stack|QA|Gerente de projeto|
-|---|---|---|---|---|
-|Matheus Augusto||Marcello Ronald||Caio Castro||
+|Desenvolvedor FrontEnd|Desenvolvedor BackEnd|Desenvolvedor Full Stack|QA|UX|Gerente de projeto|
+|---|---|---|---|---|---|
+|Matheus Augusto|Nicole Liecheski|Marcello Ronald||Amanda|Caio Castro|
