@@ -9,6 +9,8 @@ Telas:
 
 Design Final : [(Modelo unificado - [Em produção])](https://www.figma.com/design/UgWAqHUlgHgWXMakn3f9ZK/Telas---LetrarIA---Rework?node-id=0-1&p=f&t=FqZmQU83IoqiGDA4-0)
 
+Protótipo interativo disponível em: https://goblin-night-95766424.figma.site/
+
 (_Modelos das telas anteriores podem ser consultados em [DOC](https://github.com/castromir/DesignSoftwareLetrarIA/tree/main/DOC)_
 
 ## Papeis
