@@ -1,0 +1,91 @@
+@startuml
+' Ajustar includes conforme uso, seja por lib local ou remota no github
+' ===== C4-PlantUML includes =====
+!include ../../plantUML/C4-PlantUML/C4.puml
+!include ../../plantUML/C4-PlantUML/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+
+' ===== Pessoas =====
+Person(teacher, "Professor(a)", "Acessa via web responsiva; grava leitura e vê métricas.")
+Person(admin, "Admin", "Gerencia professores e configurações.")
+Person(student, "Aluno(a)", "Interage indiretamente; lê/produz texto no dispositivo da professora.") 
+
+' ===== Sistema =====
+System_Boundary(sys, "Letrar.IA – Plataforma de Avaliação") {
+
+  ' --- Frontend ---
+  Container(web, "Web App", "Typescript/React/Vite", "UI responsiva para professores e admins; captura áudio/imagem; exportação.")
+  
+  ' --- API & Auth ---
+  Container(api, "API Backend", "Node/Express, Python/FastAPI, etc.", "Endpoints REST/GraphQL; orquestra fluxos; gera relatórios; RBAC; integra filas/armazenamento.")
+  Container(auth, "Auth Service", "OAuth/OIDC + Senha própria", "Login Google e conta própria; sessões; emissão/validação de tokens.")
+
+  ' --- Processamento assíncrono (workers) ---
+  ContainerQueue(queue, "Message Queue", "SQS/PubSub/RabbitMQ", "Orquestra jobs de IA (STT, OCR, Avaliações).")
+  Container(worker_stt, "STT Worker", "Python", "Transcreve áudios (Whisper v2 + denoiser); anexa metadados.") 
+  Container(worker_read_eval, "Reading Eval Worker", "Python", "Avalia leitura transcrita (métricas de fluência, prosódia, velocidade; possível LLM).")
+  Container(worker_ocr, "OCR Worker", "Python", "Extrai texto de imagens manuscritas (OCR).")
+  Container(worker_write_eval, "Writing Eval Worker", "Python", "Avalia texto transcrito (ortografia, coerência, etc.).")
+  
+  ' --- Dados ---
+  ContainerDb(db, "DB Relacional", "PostgreSQL", "Usuários (admin/prof), alunos, trilhas, gravações, métricas, relatórios, auditoria.")
+  Container(fs, "Object Storage", "S3/GCS", "Áudios brutos, imagens, PDFs exportados.")
+  Container(cache, "Cache/Jobs State", "Redis", "Rate limiting, sessões (se necessário), estados de job.")
+  
+  ' --- Observabilidade ---
+  Container(logs, "Observabilidade", "Logs/Metrics/Tracing", "Auditoria e troubleshooting.")
+}
+
+' ===== Sistemas Externos =====
+System_Ext(google_oauth, "Google OAuth", "Login com Google.")
+System_Ext(email, "Email/Notifier", "Envio de links de exportação e notificações.")
+
+' ===== Relacionamentos principais =====
+Rel(teacher, web, "Usa via navegador (desktop/mobile)", "HTTPS")
+Rel(admin, web, "Usa via navegador", "HTTPS")
+Rel(web, auth, "Login/OAuth", "OIDC/OAuth 2.0")
+Rel(web, api, "CRUD, iniciar/acompanhar avaliações, relatórios", "HTTPS/REST")
+Rel(api, db, "R/W", "SQL")
+Rel(api, fs, "Upload/Download", "HTTPS/S3 API")
+Rel(api, queue, "Publica jobs", "AMQP/HTTP")
+Rel(api, cache, "Sessões/Rate limit/Estados", "TCP")
+
+' --- Fluxo 1: Avaliação de leitura ---
+Rel(teacher, web, "Captura áudio (MediaRecorder)", "Web API")
+Rel(web, fs, "Envia áudio bruto", "HTTPS (multipart)")
+Rel(api, queue, "Enfileira job STT", "enqueue: reading_audio")
+Rel(queue, worker_stt, "Consome job")
+Rel(worker_stt, fs, "Lê áudio")
+Rel(worker_stt, db, "Grava transcrição + status")
+Rel(queue, worker_read_eval, "Dispara avaliação pós-STT")
+Rel(worker_read_eval, db, "Grava métricas (fluência, prosódia, velocidade)")
+' (prof vê no web → api → db)
+
+' --- Fluxo 2: Avaliação de escrita ---
+Rel(teacher, web, "Captura imagem (câmera) do texto")
+Rel(web, fs, "Envia imagem")
+Rel(api, queue, "Enfileira job OCR", "enqueue: writing_image")
+Rel(queue, worker_ocr, "Consome job")
+Rel(worker_ocr, fs, "Lê imagem")
+Rel(worker_ocr, db, "Grava texto OCR")
+Rel(queue, worker_write_eval, "Dispara avaliação")
+Rel(worker_write_eval, db, "Grava métricas de escrita")
+
+' --- Exportações/Relatórios ---
+Rel(web, api, "Solicita PDF/CSV")
+Rel(api, queue, "Job exportação (opcional)")
+Rel(api, fs, "Armazena PDF/CSV")
+Rel(api, email, "Envia link seguro (opcional)", "SMTP/API")
+
+' --- Autenticação externa ---
+Rel(auth, google_oauth, "Login com Google", "OAuth 2.0")
+
+' --- Observabilidade ---
+Rel(api, logs, "Logs/Métricas/Tracing")
+Rel(worker_stt, logs, "Logs/Métricas")
+Rel(worker_ocr, logs, "Logs/Métricas")
+Rel(worker_read_eval, logs, "Logs/Métricas")
+Rel(worker_write_eval, logs, "Logs/Métricas")
+
+@enduml
