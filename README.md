@@ -16,5 +16,5 @@ Design Final : [(Modelo unificado - [Em produção])](https://www.figma.com/desi
 |Desenvolvedor FrontEnd|Desenvolvedor BackEnd|Desenvolvedor Full Stack|QA|UX|Gerente de projeto|
 |---|---|---|---|---|---|
 |Matheus Augusto|Nicole Liecheski|Marcello Ronald||Amanda |Caio Castro|
-|||||Marcello Ronald||
+||Jaime da Cruz|||Marcello Ronald||
 |||||Gabriel Mota||
