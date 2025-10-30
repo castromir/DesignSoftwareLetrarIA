@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog@1.1.6';
 import { X } from 'lucide-react';
 import { cn } from './ui/utils';
@@ -24,6 +24,14 @@ export default function EditStudentDialog({
 }: EditStudentDialogProps) {
   const [name, setName] = useState(student?.name || '');
   const [age, setAge] = useState(student?.age || 0);
+
+  // Atualiza os campos quando o student mudar ou o dialog abrir
+  useEffect(() => {
+    if (open && student) {
+      setName(student.name);
+      setAge(student.age);
+    }
+  }, [open, student]);
 
   const handleSave = () => {
     if (student && name && age) {

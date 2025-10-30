@@ -266,12 +266,12 @@ export default function StudentTracking({ student, onBack }: StudentTrackingProp
   if (!student) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#f0f0f0] z-50 flex flex-col">
+    <div className="min-h-screen bg-[#f0f0f0]">
       {/* Header */}
-      <div className="border-b border-black/30 px-4 md:px-8 py-3 flex items-center gap-3 flex-shrink-0 bg-[#f0f0f0]">
+      <div className="border-b border-black/30 px-4 md:px-8 py-3 flex items-center gap-3 bg-[#f0f0f0]">
         <button
           onClick={onBack}
-          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2"
+          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2 z-[60]"
         >
           <ChevronLeft className="h-6 w-6 text-black" />
         </button>
@@ -281,8 +281,8 @@ export default function StudentTracking({ student, onBack }: StudentTrackingProp
       </div>
 
       {/* Student Info */}
-      <div className="border-b border-black/30 px-6 md:px-8 py-4 md:py-6 bg-[#f0f0f0]">
-        <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-4 max-w-6xl mx-auto">
+      <div className="border-b border-black/30 px-4 md:px-6 py-2 md:py-3 bg-[#f0f0f0]">
+        <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-3 max-w-6xl mx-auto">
           <StudentAvatar />
           <div className="text-center md:text-left">
             <h2 className="text-[16px] md:text-[18px] font-semibold text-black">{student.name}</h2>
@@ -296,8 +296,8 @@ export default function StudentTracking({ student, onBack }: StudentTrackingProp
         <MonthSelector selectedMonth={selectedMonth} onSelectMonth={setSelectedMonth} />
       </div>
 
-      {/* Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto pb-6">
+      {/* Content */}
+      <div className="pb-6 bg-[#f0f0f0]">
         <div className="px-4 md:px-8 max-w-7xl mx-auto">
           {/* Mobile Layout */}
           <div className="lg:hidden">
