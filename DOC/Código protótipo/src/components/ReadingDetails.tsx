@@ -6,6 +6,7 @@ interface ReadingDetailsProps {
   storyTitle: string;
   studentName: string;
   onBack: () => void;
+  onViewTextAnalysis?: () => void;
 }
 
 function AccuracyChart() {
@@ -27,7 +28,7 @@ function AccuracyChart() {
 
       {/* Progress circle */}
       <svg
-        className="absolute inset-0 size-full -rotate-90"
+        className="absolute inset-0 size-full -rotate-0"
         fill="none"
         preserveAspectRatio="none"
         viewBox="0 0 96 96"
@@ -174,6 +175,7 @@ export default function ReadingDetails({
   storyTitle,
   studentName,
   onBack,
+  onViewTextAnalysis,
 }: ReadingDetailsProps) {
   return (
     <div className="fixed inset-0 bg-[#f0f0f0] z-50 flex flex-col">
@@ -181,7 +183,7 @@ export default function ReadingDetails({
       <div className="border-b border-black/30 px-4 md:px-8 py-4 flex items-center gap-3 flex-shrink-0 bg-[#f0f0f0]">
         <button
           onClick={onBack}
-          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2"
+          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2 z-[60]"
         >
           <ChevronLeft className="h-6 w-6 text-black" />
         </button>
@@ -401,7 +403,10 @@ export default function ReadingDetails({
                 <AudioPlayer />
 
                 {/* Textual Analysis Button */}
-                <button className="w-full bg-[#3b73ed] rounded-[10px] h-[50px] flex items-center justify-center gap-2 hover:bg-[#2d62dc] transition-colors cursor-pointer">
+                <button 
+                  onClick={onViewTextAnalysis}
+                  className="w-full bg-[#3b73ed] rounded-[10px] h-[50px] flex items-center justify-center gap-2 hover:bg-[#2d62dc] transition-colors cursor-pointer"
+                >
                   <svg
                     className="w-5 h-5"
                     fill="none"
