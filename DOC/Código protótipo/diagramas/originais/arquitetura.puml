@@ -1,0 +1,31 @@
+@startuml
+package "src" {
+  package "components" {
+    [features/*] as Features
+    [ui/*] as UI
+  }
+  package "hooks" {
+    [useAuth]
+    [useStudents]
+    [useActivities]
+  }
+  package "utils" {
+    [format]
+    [validation]
+    [constants]
+  }
+  package "types" {
+    [index.ts]
+  }
+  package "imports (figma)" {
+    [figma svgs/components]
+  }
+  [App.tsx] --> Features
+  [App.tsx] --> UI
+  [App.tsx] --> hooks
+  Features --> hooks
+  Features --> utils
+  Features --> types
+  Features --> "imports (figma)"
+}
+@enduml

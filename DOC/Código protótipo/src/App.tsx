@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { LoginPage } from './components/LoginPage';
-import { AdminDashboard } from './components/AdminDashboard';
-import { ProfessionalHome } from './components/ProfessionalHome';
-import { Toaster } from './components/ui/sonner';
+import { useState } from "react";
+import { LoginPage } from "./components/LoginPage";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { ProfessionalHome } from "./components/ProfessionalHome";
+import { Toaster } from "./components/ui/sonner";
 
-type UserType = 'admin' | 'professional' | null;
+type UserType = "admin" | "professional" | null;
 
 interface User {
   email: string;
@@ -13,7 +13,9 @@ interface User {
 }
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(
+    null,
+  );
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -33,19 +35,25 @@ export default function App() {
     );
   }
 
-  if (currentUser.type === 'admin') {
+  if (currentUser.type === "admin") {
     return (
       <>
-        <AdminDashboard user={currentUser} onLogout={handleLogout} />
+        <AdminDashboard
+          user={currentUser}
+          onLogout={handleLogout}
+        />
         <Toaster />
       </>
     );
   }
 
-  if (currentUser.type === 'professional') {
+  if (currentUser.type === "professional") {
     return (
       <>
-        <ProfessionalHome user={currentUser} onLogout={handleLogout} />
+        <ProfessionalHome
+          user={currentUser}
+          onLogout={handleLogout}
+        />
         <Toaster />
       </>
     );

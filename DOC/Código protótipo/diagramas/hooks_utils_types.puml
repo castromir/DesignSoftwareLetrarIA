@@ -1,0 +1,21 @@
+@startuml
+package "hooks" {
+  [useAuth]
+  [useStudents]
+  [useActivities]
+}
+package "utils" {
+  [constants]
+  [format]
+  [helpers]
+  [validation]
+}
+package "types" {
+  [index.ts]
+}
+[components/*] --> hooks
+[components/*] --> utils
+[components/*] --> types
+[hooks] --> utils
+note left: Principais contratos: types/index.ts
+@enduml

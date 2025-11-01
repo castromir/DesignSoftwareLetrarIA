@@ -1,7 +1,8 @@
 import { ChevronLeft, Play, Pause } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import svgPaths from "../imports/svg-gg4j504qmb";
 import ReadingDetails from "./ReadingDetails";
+import TextAnalysis from "./TextAnalysis";
 
 interface Student {
   id: number;
@@ -17,6 +18,8 @@ interface Recording {
   duration: string;
   progress: number;
   isPlaying: boolean;
+  timeRemaining: number; // in seconds
+  totalDuration: number; // in seconds
 }
 
 interface RecordingsListProps {
@@ -28,7 +31,7 @@ interface RecordingsListProps {
 function PlayIcon() {
   return (
     <svg
-      className="w-[18px] h-[18px]"
+      className="w-[28px] h-[28px] translate-x-[-6px] translate-y-[-6px]"
       fill="none"
       preserveAspectRatio="xMidYMid meet"
       viewBox="0 0 36 33"
@@ -47,7 +50,7 @@ function PlayIcon() {
 function PauseIcon() {
   return (
     <svg
-      className="w-[18px] h-[18px]"
+      className="w-[28px] h-[28px] translate-x-[-7px] translate-y-[-7px]"
       fill="none"
       preserveAspectRatio="xMidYMid meet"
       viewBox="0 0 33 33"
@@ -55,6 +58,13 @@ function PauseIcon() {
       <path d={svgPaths.p2806d900} fill="white" />
     </svg>
   );
+}
+
+// Helper function to format seconds as MM:SS
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 function RecordingCard({
@@ -66,6 +76,11 @@ function RecordingCard({
   onTogglePlay: () => void;
   onViewMetrics: () => void;
 }) {
+  // Calculate progress percentage
+  const progressPercentage = recording.totalDuration > 0
+    ? ((recording.totalDuration - recording.timeRemaining) / recording.totalDuration) * 100
+    : 0;
+
   return (
     <div className="bg-white rounded-[10px] p-5 shadow-sm">
       <div className="flex items-center gap-4 mb-4">
@@ -81,7 +96,7 @@ function RecordingCard({
         {/* Play/Pause Button */}
         <button
           onClick={onTogglePlay}
-          className="w-[44px] h-[44px] rounded-full bg-[#3c81e9] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center hover:bg-[#2d6fd9] transition-colors flex-shrink-0"
+          className="w-[48px] h-[48px] rounded-full bg-[#3c81e9] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center hover:bg-[#2d6fd9] transition-colors flex-shrink-0 text-[16px]"
         >
           {recording.isPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
@@ -91,12 +106,12 @@ function RecordingCard({
       <div className="flex items-center gap-2 mb-4">
         <div className="flex-1 bg-[#d9d9d9] h-[6.646px] rounded-[10px] overflow-hidden">
           <div
-            className="h-full rounded-[10px] bg-[#0f61db] transition-all"
-            style={{ width: `${recording.progress}%` }}
+            className="h-full rounded-[10px] bg-[#0f61db] transition-all duration-1000 ease-linear"
+            style={{ width: `${progressPercentage}%` }}
           />
         </div>
         <span className="text-[12px] font-bold text-neutral-500 text-nowrap">
-          {recording.duration}
+          {formatTime(recording.timeRemaining)}
         </span>
       </div>
 
@@ -113,12 +128,19 @@ function RecordingCard({
   );
 }
 
+// Helper function to convert MM:SS to seconds
+function timeToSeconds(timeStr: string): number {
+  const [mins, secs] = timeStr.split(":").map(Number);
+  return mins * 60 + secs;
+}
+
 export default function RecordingsList({
   student,
   storyTitle,
   onBack,
 }: RecordingsListProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const [showTextAnalysis, setShowTextAnalysis] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([
     {
       id: 1,
@@ -128,6 +150,8 @@ export default function RecordingsList({
       duration: "3:47",
       progress: 0,
       isPlaying: false,
+      timeRemaining: timeToSeconds("3:47"),
+      totalDuration: timeToSeconds("3:47"),
     },
     {
       id: 2,
@@ -137,20 +161,104 @@ export default function RecordingsList({
       duration: "1:45",
       progress: 56,
       isPlaying: false,
+      timeRemaining: timeToSeconds("1:45"),
+      totalDuration: timeToSeconds("1:45"),
     },
   ]);
 
+  // Timer effect for playing recordings
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRecordings((prev) =>
+        prev.map((rec) => {
+          if (rec.isPlaying && rec.timeRemaining > 0) {
+            const newTimeRemaining = rec.timeRemaining - 1;
+            // Auto-pause when reaching 0
+            if (newTimeRemaining === 0) {
+              return { ...rec, timeRemaining: 0, isPlaying: false };
+            }
+            return { ...rec, timeRemaining: newTimeRemaining };
+          }
+          return rec;
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Pause all recordings when user leaves the page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setRecordings((prev) =>
+          prev.map((rec) => ({ ...rec, isPlaying: false }))
+        );
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   const handleTogglePlay = (id: number) => {
     setRecordings((prev) =>
-      prev.map((rec) =>
-        rec.id === id
-          ? { ...rec, isPlaying: !rec.isPlaying }
-          : { ...rec, isPlaying: false },
-      ),
+      prev.map((rec) => {
+        if (rec.id === id) {
+          // If paused at 0, reset to full duration when playing again
+          if (!rec.isPlaying && rec.timeRemaining === 0) {
+            return { ...rec, isPlaying: true, timeRemaining: rec.totalDuration };
+          }
+          return { ...rec, isPlaying: !rec.isPlaying };
+        }
+        // Pause other recordings
+        return { ...rec, isPlaying: false };
+      })
     );
   };
 
+  const pauseAllRecordings = () => {
+    setRecordings((prev) =>
+      prev.map((rec) => ({ ...rec, isPlaying: false }))
+    );
+  };
+
+  const handleBackClick = () => {
+    pauseAllRecordings();
+    onBack();
+  };
+
+  const handleViewMetrics = () => {
+    pauseAllRecordings();
+    setShowDetails(true);
+  };
+
   if (!student) return null;
+
+  // Sample story content and incorrect words for simulation
+  const storyContent = `O rato roeu a ropa do rei de roma. Era um rato muito esperto que vivia no castelo real. Todos os dias ele procurava por pedaços de queijo e pão. O rei ficava muito bravo com o rato, mas nunca conseguia pegá-lo.
+  
+O pequeno roedor sabia exatamente onde se esconder. Nas paredes do palácio havia muitos buracos secretos. Quando os guardas tentavam capturá-lo, ele rapidamente desaparecia.
+  
+Um dia, o rei decidiu fazer as pazes com o ratinho. Percebeu que a criatura só queria sobreviver. Desde então, deixou migalhas de comida em um canto da cozinha. O rato agradecido nunca mais roeu as roupas reais.`;
+
+  const incorrectWords = ["ropa", "roeu", "roedor", "rapidamente"];
+
+  if (showTextAnalysis) {
+    return (
+      <TextAnalysis
+        student={student}
+        storyTitle={storyTitle}
+        storySubtitle="Letras trabalhadas: R"
+        storyContent={storyContent}
+        incorrectWords={incorrectWords}
+        onBack={() => setShowTextAnalysis(false)}
+      />
+    );
+  }
 
   if (showDetails) {
     return (
@@ -158,6 +266,7 @@ export default function RecordingsList({
         storyTitle={storyTitle}
         studentName={student.name}
         onBack={() => setShowDetails(false)}
+        onViewTextAnalysis={() => setShowTextAnalysis(true)}
       />
     );
   }
@@ -167,8 +276,8 @@ export default function RecordingsList({
       {/* Header */}
       <div className="border-b border-black/30 px-4 py-4 flex items-center gap-3 flex-shrink-0">
         <button
-          onClick={onBack}
-          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2"
+          onClick={handleBackClick}
+          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2 z-[60]"
         >
           <ChevronLeft className="h-6 w-6 text-black" />
         </button>
@@ -193,7 +302,7 @@ export default function RecordingsList({
               key={recording.id}
               recording={recording}
               onTogglePlay={() => handleTogglePlay(recording.id)}
-              onViewMetrics={() => setShowDetails(true)}
+              onViewMetrics={handleViewMetrics}
             />
           ))}
         </div>

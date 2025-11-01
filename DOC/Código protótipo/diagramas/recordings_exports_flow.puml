@@ -1,0 +1,12 @@
+@startuml
+actor Prof
+participant RecordingsList
+participant RecordingPlayer
+participant ExportReports
+Prof -> RecordingsList : select recording
+RecordingsList -> RecordingPlayer : play / pause
+RecordingPlayer -> ExportReports : request export (mp3/pdf)
+ExportReports -> Storage : save file
+ExportReports --> Prof : download link
+note right: Arquivos relevantes:\n`src/components/RecordingsList.tsx`\n`src/components/ExportReports.tsx`\n`src/components/ReportsAnalytics.tsx`
+@enduml

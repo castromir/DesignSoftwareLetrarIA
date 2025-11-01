@@ -1,0 +1,11 @@
+@startuml
+actor Prof as "Profissional"
+Prof -> DiagnosticsList : selecionar aluno / novo diagnóstico
+DiagnosticsList -> StudentDiagnostic : abrir formulário
+StudentDiagnostic -> StudentDiagnostic : preencher perguntas (state)
+StudentDiagnostic -> DiagnosticResult : setDiagnosticData + showResult
+DiagnosticResult -> AI : gerar recomendações (simulado)
+DiagnosticResult -> Reports : exportar relatório / criar plano
+DiagnosticResult --> Prof : apresentar relatório (gráficos, recomendações)
+note right: Componentes principais:\n[`StudentDiagnostic`](../..//src/components/StudentDiagnostic.tsx)\n[`DiagnosticResult`](../..//src/components/DiagnosticResult.tsx)\n[`DiagnosticsList`](../..//src/components/DiagnosticsList.tsx)
+@enduml

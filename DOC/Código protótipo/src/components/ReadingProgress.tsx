@@ -116,7 +116,7 @@ export default function ReadingProgress({ student, onBack, onViewRecordings }: R
       <div className="border-b border-black/30 px-4 py-4 flex items-center gap-3 flex-shrink-0">
         <button
           onClick={onBack}
-          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2"
+          className="p-3 hover:bg-gray-200 rounded-lg transition-colors -ml-2 z-[60]"
         >
           <ChevronLeft className="h-6 w-6 text-black" />
         </button>

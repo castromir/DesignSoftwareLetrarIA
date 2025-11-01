@@ -19,6 +19,8 @@ import {
   Trash2,
   UserPlus,
   ClipboardCheck,
+  Printer,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
@@ -35,6 +37,7 @@ import CreateActivity from "./CreateActivity";
 import ActivitiesList from "./ActivitiesList";
 import ReportsAnalytics from "./ReportsAnalytics";
 import DiagnosticsList from "./DiagnosticsList";
+import TextReader from "./TextReader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -122,6 +125,13 @@ export function ProfessionalHome({
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [returnToActivitiesList, setReturnToActivitiesList] =
     useState(false);
+  const [showTextReader, setShowTextReader] = useState(false);
+  const [selectedText, setSelectedText] = useState<{
+    id: number;
+    title: string;
+    subtitle: string;
+    content: string;
+  } | null>(null);
   const [fullActivities, setFullActivities] = useState<
     FullActivity[]
   >([
@@ -197,6 +207,159 @@ export function ProfessionalHome({
       needsAttention: false,
     },
   ]);
+
+  const textLibrary = [
+    {
+      id: 1,
+      title: "O Gatinho Curioso",
+      subtitle: "Letras trabalhadas: G, C, T, R",
+      tags: [
+        { name: "Histórias", color: "blue" },
+        { name: "Iniciante", color: "green" },
+      ],
+      content: `Era uma vez um gatinho chamado Mimi. Mimi era muito curioso e adorava explorar.
+
+Um dia, Mimi viu uma borboleta colorida no jardim. Ele correu atrás dela, pulando e brincando.
+
+A borboleta voou até uma árvore alta. Mimi tentou subir, mas era difícil. Ele miou pedindo ajuda.
+
+Sua dona Maria veio e o ajudou a descer. Mimi aprendeu que nem sempre é bom ser muito curioso.
+
+Agora Mimi é mais cuidadoso em suas aventuras pelo jardim.`,
+    },
+    {
+      id: 2,
+      title: "O Jardim da Vovó",
+      subtitle: "Letras trabalhadas: J, V, F, L",
+      tags: [
+        { name: "Natureza", color: "green" },
+        { name: "Iniciante", color: "green" },
+      ],
+      content: `A vovó Lurdes tem um jardim lindo. Lá tem muitas flores coloridas.
+
+Ela planta rosas vermelhas, margaridas brancas e girassóis amarelos.
+
+Todo dia ela rega as plantas com seu regador verde. As flores crescem bonitas e alegres.
+
+Os passarinhos gostam de visitar o jardim. Eles cantam e pulam de galho em galho.
+
+A vovó fica feliz vendo seu jardim florido. É o lugar mais bonito da casa.`,
+    },
+    {
+      id: 3,
+      title: "O Dia da Chuva",
+      subtitle: "Letras trabalhadas: CH, D, P, B",
+      tags: [
+        { name: "Cotidiano", color: "purple" },
+        { name: "Iniciante", color: "green" },
+      ],
+      content: `Pedro acordou e olhou pela janela. O céu estava cinza e começou a chover.
+
+As gotas de chuva batiam no vidro fazendo um barulho gostoso. Plim, plim, plim!
+
+Pedro pegou sua capa de chuva amarela e suas botas de borracha vermelhas.
+
+Ele saiu para brincar nas poças de água. Que divertido! Splash, splash!
+
+A chuva parou e apareceu um lindo arco-íris no céu. Pedro ficou encantado.`,
+    },
+    {
+      id: 4,
+      title: "A Festa de Aniversário",
+      subtitle: "Letras trabalhadas: F, N, S, B",
+      tags: [
+        { name: "Celebrações", color: "pink" },
+        { name: "Intermediário", color: "orange" },
+      ],
+      content: `Hoje é o aniversário de Sofia. Ela está fazendo oito anos!
+
+A casa está toda enfeitada com balões coloridos e bandeirinhas. Tem bolo de chocolate com morango.
+
+Os amigos chegaram trazendo presentes. Eles brincaram de dança das cadeiras e corrida do saco.
+
+Na hora do parabéns, todos cantaram bem alto. Sofia soprou as velinhas fazendo um pedido secreto.
+
+Foi a melhor festa do ano! Sofia agradeceu a todos pela presença e pelos lindos presentes.`,
+    },
+    {
+      id: 5,
+      title: "O Passeio no Parque",
+      subtitle: "Letras trabalhadas: P, C, R, QU",
+      tags: [
+        { name: "Natureza", color: "green" },
+        { name: "Intermediário", color: "orange" },
+      ],
+      content: `No domingo, a família de Lucas foi ao parque. O sol brilhava no céu azul.
+
+Lucas levou sua bola e sua bicicleta nova. Ele pedalou pelo caminho vendo as árvores e flores.
+
+Encontrou seus amigos no parquinho. Eles subiram no escorregador e brincaram no balanço.
+
+Depois, fizeram um piquenique na grama. Comeram sanduíches, frutas e suco gelado.
+
+No fim da tarde, todos voltaram para casa cansados mas muito felizes com o passeio.`,
+    },
+    {
+      id: 6,
+      title: "A Escola Nova",
+      subtitle: "Letras trabalhadas: SC, N, M, L",
+      tags: [
+        { name: "Escola", color: "blue" },
+        { name: "Intermediário", color: "orange" },
+      ],
+      content: `Marina estava nervosa. Era seu primeiro dia na escola nova.
+
+Ela colocou seu uniforme e arrumou a mochila com muito cuidado. Lápis, caderno e estojo novinho.
+
+Ao chegar na escola, a professora Ana a recebeu com um sorriso. A sala era colorida e acolhedora.
+
+Marina conheceu seus novos colegas. Eles foram muito gentis e a convidaram para brincar no recreio.
+
+No final do dia, Marina estava feliz. Tinha feito novos amigos e adorado sua escola nova.`,
+    },
+    {
+      id: 7,
+      title: "O Cachorro Herói",
+      subtitle: "Letras trabalhadas: CH, RR, LH, NH",
+      tags: [
+        { name: "Histórias", color: "blue" },
+        { name: "Avançado", color: "red" },
+      ],
+      content: `Rex era um cachorro corajoso que morava com a família Silva. Ele sempre cuidava da casa.
+
+Uma noite, Rex ouviu um barulho estranho. Ele latiu forte para acordar todos. Au! Au! Au!
+
+Havia fumaça saindo da cozinha. Um pano de prato tinha pegado fogo perto do fogão.
+
+O papai acordou rapidamente e apagou o fogo. Por sorte, ninguém se machucou.
+
+Todos agradeceram ao Rex. Ele tinha salvado a família! Rex ganhou um osso especial de recompensa.
+
+Desde então, Rex é conhecido no bairro como o cachorro herói que salvou sua família.`,
+    },
+    {
+      id: 8,
+      title: "A Viagem de Férias",
+      subtitle: "Letras trabalhadas: GU, QU, ÇÃO, SS",
+      tags: [
+        { name: "Aventuras", color: "purple" },
+        { name: "Avançado", color: "red" },
+      ],
+      content: `Nas férias de julho, Beatriz viajou com seus pais para a praia. Que emoção!
+
+Eles fizeram uma viagem longa de carro. Passaram por montanhas, túneis e pequenas cidades.
+
+Quando chegaram, Beatriz viu o mar pela primeira vez. Era enorme e brilhante!
+
+Ela brincou na areia construindo castelos, procurou conchinhas e mergulhou nas ondas.
+
+À noite, provaram comidas deliciosas em restaurantes à beira-mar. Tinha peixe fresco e camarão.
+
+Beatriz tirou muitas fotos para guardar as lembranças. Foi a melhor viagem da sua vida!
+
+Quando voltou para casa, ela já estava com saudade da praia e planejando a próxima aventura.`,
+    },
+  ];
 
   const activities: Activity[] = [
     {
@@ -292,6 +455,12 @@ export function ProfessionalHome({
     setProfileOpen(true);
   };
 
+  const handleViewRecordingsFromTrail = (story: any) => {
+    setSelectedStory(story);
+    setShowTrail(false);
+    setShowRecordings(true);
+  };
+
   const handleBackFromProgress = () => {
     setShowProgress(false);
     setProfileOpen(true);
@@ -304,7 +473,7 @@ export function ProfessionalHome({
 
   const handleBackFromRecordings = () => {
     setShowRecordings(false);
-    setShowProgress(true);
+    setShowTrail(true);
   };
 
   const handleBackFromExport = () => {
@@ -337,7 +506,14 @@ export function ProfessionalHome({
   if (showExport && selectedStudent) {
     return (
       <ExportReports
-        student={selectedStudent}
+        students={students}
+        selectedStudentId={selectedStudent.id}
+        onStudentChange={(studentId) => {
+          const newStudent = students.find(s => s.id === studentId);
+          if (newStudent) {
+            setSelectedStudent(newStudent);
+          }
+        }}
         onBack={handleBackFromExport}
       />
     );
@@ -401,6 +577,70 @@ export function ProfessionalHome({
     };
 
     setStudents((prev) => [...prev, newStudent]);
+  };
+
+  const handlePrintAllTexts = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const textContent = textLibrary
+        .map((text, index) => {
+          return `
+            <div style="page-break-after: ${index === textLibrary.length - 1 ? 'auto' : 'always'}; padding: 20px;">
+              <h2>${text.title}</h2>
+              <p><strong>${text.subtitle}</strong></p>
+              <p><strong>Tags:</strong> ${text.tags.map(t => t.name).join(', ')}</p>
+              <hr />
+              <div style="margin-top: 20px; white-space: pre-line;">${text.content}</div>
+            </div>
+          `;
+        })
+        .join('');
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Biblioteca de Textos - Imprimir Todos</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              h2 { color: #0056b9; }
+            </style>
+          </head>
+          <body>
+            <h1 style="text-align: center; color: #0056b9;">Biblioteca de Textos</h1>
+            ${textContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleReadText = (text: typeof textLibrary[0]) => {
+    setSelectedText({
+      id: text.id,
+      title: text.title,
+      subtitle: text.subtitle,
+      content: text.content,
+    });
+    setShowTextReader(true);
+  };
+
+  const handleBackFromTextReader = () => {
+    setShowTextReader(false);
+    setSelectedText(null);
+  };
+
+  const getTagColor = (color: string) => {
+    const colors: Record<string, { bg: string; text: string }> = {
+      blue: { bg: 'bg-blue-50', text: 'text-blue-700' },
+      green: { bg: 'bg-green-50', text: 'text-green-700' },
+      purple: { bg: 'bg-purple-50', text: 'text-purple-700' },
+      pink: { bg: 'bg-pink-50', text: 'text-pink-700' },
+      orange: { bg: 'bg-orange-50', text: 'text-orange-700' },
+      red: { bg: 'bg-red-50', text: 'text-red-700' },
+    };
+    return colors[color] || colors.blue;
   };
 
   const handleBackToHome = () => {
@@ -474,6 +714,7 @@ export function ProfessionalHome({
       <ReadingTrail
         student={selectedStudent}
         onBack={handleBackFromTrail}
+        onViewRecordings={handleViewRecordingsFromTrail}
       />
     );
   }
@@ -526,6 +767,19 @@ export function ProfessionalHome({
       <DiagnosticsList
         onBack={() => setShowDiagnostic(false)}
         students={students}
+      />
+    );
+  }
+
+  // Show Text Reader fullscreen
+  if (showTextReader && selectedText) {
+    return (
+      <TextReader
+        textId={selectedText.id}
+        textTitle={selectedText.title}
+        textSubtitle={selectedText.subtitle}
+        textContent={selectedText.content}
+        onBack={handleBackFromTextReader}
       />
     );
   }
@@ -886,6 +1140,62 @@ export function ProfessionalHome({
                 </div>
               )}
             </div>
+          </div>
+        </section>
+
+        {/* Biblioteca de Textos */}
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-semibold text-black">
+              Biblioteca de Textos
+            </h3>
+            <button
+              onClick={handlePrintAllTexts}
+              className="flex items-center gap-2 text-[#0056b9] hover:text-[#004080] transition-colors cursor-pointer"
+            >
+              <Printer className="h-4 w-4" />
+              <span className="text-[13px]">Imprimir Todos</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {textLibrary.map((text) => (
+              <div
+                key={text.id}
+                className="bg-white rounded-[10px] border border-black/12 p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="bg-blue-50 rounded-lg p-2 flex-shrink-0">
+                    <BookOpen className="h-5 w-5 text-[#0056b9]" />
+                  </div>
+                  <h4 className="text-[14px] font-medium text-black flex-1 line-clamp-2">
+                    {text.title}
+                  </h4>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {text.tags.map((tag, index) => {
+                    const tagColors = getTagColor(tag.color);
+                    return (
+                      <span
+                        key={index}
+                        className={`${tagColors.bg} ${tagColors.text} px-2 py-1 rounded text-[11px] font-medium`}
+                      >
+                        {tag.name}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <button 
+                  onClick={() => handleReadText(text)}
+                  className="w-full flex items-center justify-between text-[#0056b9] hover:text-[#004080] transition-colors cursor-pointer group"
+                >
+                  <span className="text-[13px]">Ler texto</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            ))}
           </div>
         </section>
 
