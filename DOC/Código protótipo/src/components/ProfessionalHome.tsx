@@ -506,7 +506,14 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   if (showExport && selectedStudent) {
     return (
       <ExportReports
-        student={selectedStudent}
+        students={students}
+        selectedStudentId={selectedStudent.id}
+        onStudentChange={(studentId) => {
+          const newStudent = students.find(s => s.id === studentId);
+          if (newStudent) {
+            setSelectedStudent(newStudent);
+          }
+        }}
         onBack={handleBackFromExport}
       />
     );

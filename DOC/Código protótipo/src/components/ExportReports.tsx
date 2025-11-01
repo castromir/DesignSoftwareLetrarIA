@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { ChevronLeft, Download, Mail, Calendar } from 'lucide-react';
 import svgPaths from '../imports/svg-ud1jof4hiy';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 interface Student {
   id: number;
@@ -9,7 +16,9 @@ interface Student {
 }
 
 interface ExportReportsProps {
-  student: Student;
+  students: Student[];
+  selectedStudentId: number;
+  onStudentChange: (studentId: number) => void;
   onBack: () => void;
 }
 
@@ -27,15 +36,17 @@ function StudentAvatar() {
   );
 }
 
-export default function ExportReports({ student, onBack }: ExportReportsProps) {
+export default function ExportReports({ students, selectedStudentId, onStudentChange, onBack }: ExportReportsProps) {
   const [reportType, setReportType] = useState<'general' | 'individual'>('general');
   const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  const selectedStudent = students.find(s => s.id === selectedStudentId);
+
   const handleExport = (method: 'email' | 'download') => {
     console.log('Exporting report:', {
-      student: student.name,
+      student: selectedStudent?.name,
       reportType,
       format,
       startDate,
@@ -70,112 +81,138 @@ export default function ExportReports({ student, onBack }: ExportReportsProps) {
           <h2 className="text-[20px] font-semibold text-black mb-4">
             Selecione o aluno:
           </h2>
-          <div className="bg-white rounded-[10px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] p-4 flex items-center gap-3">
-            <StudentAvatar />
-            <p className="text-[16px] font-semibold text-black">{student.name}</p>
-          </div>
+          <Select
+            value={selectedStudentId.toString()}
+            onValueChange={(value) => onStudentChange(Number(value))}
+          >
+            <SelectTrigger className="w-full bg-white rounded-[10px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] h-auto pt-8 pb-8 border-0">
+              <div className="flex items-center gap-3">
+                <StudentAvatar />
+                <SelectValue>
+                  <span className="text-[16px] font-semibold text-black">
+                    {selectedStudent?.name || 'Selecione um aluno'}
+                  </span>
+                </SelectValue>
+              </div>
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px] overflow-auto py-2">
+              {students.map((student) => (
+                <SelectItem key={student.id} value={student.id.toString()}>
+                  <div className="flex items-center gap-3">
+                    <StudentAvatar />
+                    <span className="text-[16px] font-semibold text-black">
+                      {student.name}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Report Type */}
-        <div>
-          <h2 className="text-[20px] font-semibold text-black mb-4">
-            Tipo de relatório
-          </h2>
-          <div className="space-y-3">
-            <button
-              onClick={() => setReportType('general')}
-              className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[63px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-[23px] h-[23px] rounded-full border-2 border-[#418DF0] flex items-center justify-center flex-shrink-0">
-                {reportType === 'general' && (
-                  <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
-                )}
-              </div>
-              <span className="text-[15px] font-medium text-black">
-                Progresso geral do aluno
-              </span>
-            </button>
-            <button
-              onClick={() => setReportType('individual')}
-              className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[63px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-[23px] h-[23px] rounded-full border-2 border-[#418DF0] flex items-center justify-center flex-shrink-0">
-                {reportType === 'individual' && (
-                  <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
-                )}
-              </div>
-              <span className="text-[15px] font-medium text-black">
-                Métricas de gravações individuais
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Period */}
-        <div>
-          <h2 className="text-[20px] font-semibold text-black mb-2">Período</h2>
-          
-          {/* Start Date */}
-          <div className="mb-4">
-            <label className="block text-[13px] font-semibold text-[#3f3f3f] mb-2">
-              Data de início
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full h-[55px] px-4 pr-12 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
-                placeholder="DD/MM/AAAA"
-              />
-              <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-[31px] w-[33px] text-[#979797] pointer-events-none" />
-            </div>
-          </div>
-
-          {/* End Date */}
+        {/* Three columns: Report Type, Period, Format */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Report Type */}
           <div>
-            <label className="block text-[13px] font-semibold text-[#3f3f3f] mb-2">
-              Data de término
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full h-[55px] px-4 pr-12 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
-                placeholder="DD/MM/AAAA"
-              />
-              <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-[31px] w-[33px] text-[#979797] pointer-events-none" />
+            <h2 className="text-[20px] font-semibold text-black mb-4">
+              Tipo de relatório
+            </h2>
+            <div className="space-y-3">
+              <button
+                onClick={() => setReportType('general')}
+                className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[63px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-[23px] h-[23px] rounded-full border-2 border-[#418DF0] flex items-center justify-center flex-shrink-0">
+                  {reportType === 'general' && (
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
+                  )}
+                </div>
+                <span className="text-[15px] font-medium text-black">
+                  Progresso geral do aluno
+                </span>
+              </button>
+              <button
+                onClick={() => setReportType('individual')}
+                className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[63px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-[23px] h-[23px] rounded-full border-2 border-[#418DF0] flex items-center justify-center flex-shrink-0">
+                  {reportType === 'individual' && (
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
+                  )}
+                </div>
+                <span className="text-[15px] font-medium text-black">
+                  Métricas de gravações individuais
+                </span>
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Format */}
-        <div>
-          <h2 className="text-[20px] font-semibold text-black mb-4">Formato</h2>
-          <div className="space-y-3">
-            <button
-              onClick={() => setFormat('pdf')}
-              className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[56px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-[23px] h-[23px] rounded-full border-2 border-[#0672FF] flex items-center justify-center flex-shrink-0">
-                {format === 'pdf' && (
-                  <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
-                )}
+          {/* Period */}
+          <div>
+            <h2 className="text-[20px] font-semibold text-black mb-2">Período</h2>
+            
+            {/* Start Date */}
+            <div className="mb-4">
+              <label className="block text-[13px] font-semibold text-[#3f3f3f] mb-2">
+                Data de início
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full h-[55px] px-4 pr-12 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
+                  placeholder="DD/MM/AAAA"
+                />
+                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-[31px] w-[33px] text-[#979797] pointer-events-none" />
               </div>
-              <span className="text-[15px] font-medium text-black">PDF</span>
-            </button>
-            <button
-              onClick={() => setFormat('csv')}
-              className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[56px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-[23px] h-[23px] rounded-full border-2 border-[#0672FF] flex items-center justify-center flex-shrink-0">
-                {format === 'csv' && (
-                  <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
-                )}
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label className="block text-[13px] font-semibold text-[#3f3f3f] mb-2">
+                Data de término
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full h-[55px] px-4 pr-12 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
+                  placeholder="DD/MM/AAAA"
+                />
+                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-[31px] w-[33px] text-[#979797] pointer-events-none" />
               </div>
-              <span className="text-[15px] font-medium text-black">CSV</span>
-            </button>
+            </div>
+          </div>
+
+          {/* Format */}
+          <div>
+            <h2 className="text-[20px] font-semibold text-black mb-4">Formato</h2>
+            <div className="space-y-3">
+              <button
+                onClick={() => setFormat('pdf')}
+                className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[56px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-[23px] h-[23px] rounded-full border-2 border-[#0672FF] flex items-center justify-center flex-shrink-0">
+                  {format === 'pdf' && (
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
+                  )}
+                </div>
+                <span className="text-[15px] font-medium text-black">PDF</span>
+              </button>
+              <button
+                onClick={() => setFormat('csv')}
+                className="w-full bg-white rounded-[22px] border border-[#c7c7c7] h-[56px] px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-[23px] h-[23px] rounded-full border-2 border-[#0672FF] flex items-center justify-center flex-shrink-0">
+                  {format === 'csv' && (
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#0672FF]" />
+                  )}
+                </div>
+                <span className="text-[15px] font-medium text-black">CSV</span>
+              </button>
+            </div>
           </div>
         </div>
 

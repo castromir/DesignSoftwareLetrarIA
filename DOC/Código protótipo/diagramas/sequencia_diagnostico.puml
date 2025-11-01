@@ -1,0 +1,12 @@
+@startuml
+participant "User(Prof)" as U
+participant "StudentDiagnostic" as SD
+participant "DiagnosticResult" as DR
+participant "AI Module (simulado)" as AI
+U -> SD : responder todas as perguntas
+SD -> SD : validar respostas
+SD -> DR : setDiagnosticData(dados)
+DR -> AI : requestRecommendations(diagnosticData)
+AI --> DR : recommendations
+DR -> U : mostrar relatório (charts, cards)
+@enduml
