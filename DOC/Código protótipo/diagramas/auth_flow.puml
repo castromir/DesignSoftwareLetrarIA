@@ -1,0 +1,14 @@
+@startuml
+actor User
+participant LoginPage
+participant useAuth
+participant ProfessionalHome
+User -> LoginPage : open / submit credentials
+LoginPage -> useAuth : call signIn(credentials)
+useAuth -> AuthService : verify credentials (API)
+AuthService --> useAuth : token / user
+useAuth --> LoginPage : authenticated -> redirect
+LoginPage -> ProfessionalHome : navigate
+ProfessionalHome -> useAuth : get currentUser
+note right: Arquivos relevantes:\n`src/components/LoginPage.tsx`\n`src/hooks/useAuth.ts`
+@enduml

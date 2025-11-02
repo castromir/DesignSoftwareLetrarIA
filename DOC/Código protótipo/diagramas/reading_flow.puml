@@ -1,0 +1,13 @@
+@startuml
+actor Student
+participant ReadingTrail
+participant ReadingStory
+participant TextReader
+participant ReadingProgress
+Student -> ReadingTrail : open trail
+ReadingTrail -> ReadingStory : open story
+ReadingStory -> TextReader : render text / audio
+TextReader -> ReadingProgress : update progress (events)
+ReadingProgress -> Reports : sync progress
+note right: Arquivos relevantes:\n`src/components/ReadingTrail.tsx`\n`src/components/ReadingStory.tsx`\n`src/components/TextReader.tsx`\n`src/components/ReadingProgress.tsx`
+@enduml

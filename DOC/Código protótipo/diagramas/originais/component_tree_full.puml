@@ -1,0 +1,46 @@
+@startuml
+folder "src/components (Top-level)" {
+  [ActivitiesList.tsx]
+  [AddStudentDialog.tsx]
+  [AdminDashboard.tsx]
+  [CreateActivity.tsx]
+  [DiagnosticResult.tsx]
+  [DiagnosticsList.tsx]
+  [EditActivityDialog.tsx]
+  [EditProfessionalDialog.tsx]
+  [EditStudentDialog.tsx]
+  [ExportReports.tsx]
+  [LoginPage.tsx]
+  [ProfessionalHome.tsx]
+  [ReadingDetails.tsx]
+  [ReadingProgress.tsx]
+  [ReadingStory.tsx]
+  [ReadingTrail.tsx]
+  [RecordingsList.tsx]
+  [ReportsAnalytics.tsx]
+  [StudentDiagnostic.tsx]
+  [StudentProfile.tsx]
+  [StudentTracking.tsx]
+  [TextAnalysis.tsx]
+  [TextReader.tsx]
+}
+folder "src/components/features" {
+  [activities/]
+  [auth/]
+  [diagnostics/]
+  [reading/]
+  [reports/]
+  [students/]
+  [trails/]
+}
+folder "src/components/ui" {
+  [button.tsx]
+  [input.tsx]
+  [dialog.tsx]
+  [card.tsx]
+  [table.tsx]
+  [chart.tsx]
+  [etc...]
+}
+note right: Esta árvore lista componentes principais e grupos de features.
+@enduml
