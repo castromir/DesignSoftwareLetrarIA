@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: letraria-db
+    environment:
+      POSTGRES_USER: letraria_user
+      POSTGRES_PASSWORD: letraria_password
+      POSTGRES_DB: letraria_db
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U letraria_user -d letraria_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - letraria-network
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: letraria-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://letraria_user:letraria_password@db:5432/letraria_db
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      ENVIRONMENT: production
+      DEBUG: "false"
+      CORS_ORIGINS: '["http://localhost:3100", "http://localhost:5174", "http://localhost:80"]'
+    ports:
+      - "8888:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    networks:
+      - letraria-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend (React/Vite)
+  frontend:
+    build:
+      context: ./Código protótipo
+      dockerfile: Dockerfile
+    container_name: letraria-frontend
+    ports:
+      - "3100:80"
+    depends_on:
+      - backend
+    networks:
+      - letraria-network
+    environment:
+      - VITE_API_URL=http://localhost:8888
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  letraria-network:
+    driver: bridge
+
