@@ -1,58 +1,58 @@
-import { useState } from "react";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoginPage } from "./components/LoginPage";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { ProfessionalHome } from "./components/ProfessionalHome";
 import { Toaster } from "./components/ui/sonner";
 
-type UserType = "admin" | "professional" | null;
+function AppContent() {
+  const { currentUser, isLoading, logout } = useAuth();
 
-interface User {
-  email: string;
-  type: UserType;
-  name: string;
-}
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
-export default function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(
-    null,
-  );
-
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-  };
-
-  // Renderiza a página baseada no tipo de usuário
   if (!currentUser) {
     return (
       <>
-        <LoginPage onLogin={handleLogin} />
+        <LoginPage />
         <Toaster />
       </>
     );
   }
 
-  if (currentUser.type === "admin") {
+  if (currentUser.role === "admin") {
     return (
       <>
         <AdminDashboard
-          user={currentUser}
-          onLogout={handleLogout}
+          user={{
+            email: currentUser.email,
+            type: "admin",
+            name: currentUser.name,
+          }}
+          onLogout={logout}
         />
         <Toaster />
       </>
     );
   }
 
-  if (currentUser.type === "professional") {
+  if (currentUser.role === "professional") {
     return (
       <>
         <ProfessionalHome
-          user={currentUser}
-          onLogout={handleLogout}
+          user={{
+            email: currentUser.email,
+            type: "professional",
+            name: currentUser.name,
+          }}
+          onLogout={logout}
         />
         <Toaster />
       </>
@@ -60,4 +60,12 @@ export default function App() {
   }
 
   return null;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
