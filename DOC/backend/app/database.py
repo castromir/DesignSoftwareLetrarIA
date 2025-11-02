@@ -4,6 +4,8 @@ from app.config import settings
 
 Base = declarative_base()
 
+from app.models import *
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug

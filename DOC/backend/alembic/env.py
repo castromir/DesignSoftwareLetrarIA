@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.config import settings
 from app.database import Base
+import app.models
 
 config = context.config
 
