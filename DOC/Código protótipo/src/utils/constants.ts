@@ -70,7 +70,7 @@ export const LIMITS = {
 } as const;
 
 // URLs de API (configure conforme necessário)
-export const API_BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:3000/api";
+export const API_BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8888";
 
 export const API_ENDPOINTS = {
   AUTH: {
