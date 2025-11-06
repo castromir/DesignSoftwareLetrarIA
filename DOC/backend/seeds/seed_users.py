@@ -15,60 +15,86 @@ def hash_password(password: str) -> str:
 async def seed_users():
     async with AsyncSessionLocal() as session:
         try:
-            result = await session.execute(select(func.count(User.id)))
-            count = result.scalar()
+            admin_result = await session.execute(select(User).where(User.email == "admin@letraria.com"))
+            admin = admin_result.scalar_one_or_none()
             
-            if count > 0:
-                print(f"Já existem {count} usuário(s) no banco. Seed não executado.")
-                return
-
-            users_data = [
-                {
+            if not admin:
+                admin_data = {
                     "id": uuid.uuid4(),
                     "email": "admin@letraria.com",
                     "password": "admin123",
                     "name": "Administrador",
                     "role": UserRole.admin,
+                    "function": None,
+                    "username": None,
+                }
+                password_hash = hash_password(admin_data["password"])
+                admin_user = User(
+                    id=admin_data["id"],
+                    email=admin_data["email"],
+                    password_hash=password_hash,
+                    name=admin_data["name"],
+                    role=admin_data["role"],
+                    function=None,
+                    username=None,
+                )
+                session.add(admin_user)
+                print(f"✓ Admin criado: {admin_data['email']}")
+            
+            professionals_data = [
+                {
+                    "email": "professor@letraria.com",
+                    "password": "prof123",
+                    "name": "Maria Silva",
+                    "function": "Professora de Alfabetização",
+                    "username": "maria.silva",
                 },
                 {
-                    "id": uuid.uuid4(),
-                    "email": "professor1@letraria.com",
+                    "email": "joao.santos@letraria.com",
                     "password": "prof123",
-                    "name": "Ana Silva",
-                    "role": UserRole.professional,
+                    "name": "João Santos",
+                    "function": "Coordenador Pedagógico",
+                    "username": "joao.santos",
                 },
                 {
-                    "id": uuid.uuid4(),
-                    "email": "professor2@letraria.com",
+                    "email": "ana.paula@letraria.com",
                     "password": "prof123",
-                    "name": "Carlos Santos",
-                    "role": UserRole.professional,
-                },
-                {
-                    "id": uuid.uuid4(),
-                    "email": "professor3@letraria.com",
-                    "password": "prof123",
-                    "name": "Maria Oliveira",
-                    "role": UserRole.professional,
+                    "name": "Ana Paula",
+                    "function": "Professora de Reforço",
+                    "username": "ana.paula",
                 },
             ]
-
-            for user_data in users_data:
-                password_hash = hash_password(user_data["password"])
+            
+            created_count = 0
+            for prof_data in professionals_data:
+                existing = await session.execute(select(User).where(User.email == prof_data["email"]))
+                if existing.scalar_one_or_none():
+                    continue
+                
+                password_hash = hash_password(prof_data["password"])
                 user = User(
-                    id=user_data["id"],
-                    email=user_data["email"],
+                    id=uuid.uuid4(),
+                    email=prof_data["email"],
                     password_hash=password_hash,
-                    name=user_data["name"],
-                    role=user_data["role"],
+                    name=prof_data["name"],
+                    role=UserRole.professional,
+                    function=prof_data["function"],
+                    username=prof_data["username"],
                 )
                 session.add(user)
+                created_count += 1
+            
+            if created_count == 0:
+                print("Todos os profissionais já existem no banco.")
+                return
 
             await session.commit()
-            print(f"✓ {len(users_data)} usuário(s) criado(s) com sucesso!")
-            print("\nUsuários criados:")
-            for user_data in users_data:
-                print(f"  - {user_data['email']} ({user_data['role'].value}) - Senha: {user_data['password']}")
+            print(f"✓ {created_count} profissional(is) criado(s) com sucesso!")
+            print("\nProfissionais criados:")
+            for prof_data in professionals_data:
+                existing = await session.execute(select(User).where(User.email == prof_data["email"]))
+                if existing.scalar_one_or_none():
+                    print(f"  - {prof_data['email']} (professional) - Senha: {prof_data['password']}")
 
         except Exception as e:
             await session.rollback()

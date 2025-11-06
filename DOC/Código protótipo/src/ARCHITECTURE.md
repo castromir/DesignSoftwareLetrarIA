@@ -125,7 +125,7 @@ import { formatDate, isValidEmail } from "@/utils";
 import { User, Activity } from "@/types";
 import { Button } from "@/components/ui/button";
 
-// ❌ EVITAR - Importações longas relativas
+//  EVITAR - Importações longas relativas
 import { useAuth } from "../../hooks/useAuth";
 import { formatDate } from "../../utils/format";
 ```

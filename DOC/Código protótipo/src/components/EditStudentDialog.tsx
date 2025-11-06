@@ -2,18 +2,13 @@ import { useState, useEffect } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog@1.1.6';
 import { X } from 'lucide-react';
 import { cn } from './ui/utils';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student, StudentUpdate } from '../types';
 
 interface EditStudentDialogProps {
   student: Student | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (student: Student) => void;
+  onSave: (student: Student) => void | Promise<void>;
 }
 
 export default function EditStudentDialog({
@@ -23,23 +18,35 @@ export default function EditStudentDialog({
   onSave,
 }: EditStudentDialogProps) {
   const [name, setName] = useState(student?.name || '');
-  const [age, setAge] = useState(student?.age || 0);
+  const [age, setAge] = useState<number | undefined>(student?.age);
+  const [registration, setRegistration] = useState(student?.registration || '');
+  const [birthDate, setBirthDate] = useState(
+    student?.birth_date ? student.birth_date.split('T')[0] : ''
+  );
+  const [observations, setObservations] = useState(student?.observations || '');
 
   // Atualiza os campos quando o student mudar ou o dialog abrir
   useEffect(() => {
     if (open && student) {
       setName(student.name);
       setAge(student.age);
+      setRegistration(student.registration || '');
+      setBirthDate(student.birth_date ? student.birth_date.split('T')[0] : '');
+      setObservations(student.observations || '');
     }
   }, [open, student]);
 
-  const handleSave = () => {
-    if (student && name && age) {
-      onSave({
+  const handleSave = async () => {
+    if (student && name) {
+      const updated: Student = {
         ...student,
-        name,
-        age,
-      });
+        name: name.trim(),
+        age: age,
+        registration: registration.trim() || undefined,
+        birth_date: birthDate || undefined,
+        observations: observations.trim() || undefined,
+      };
+      await onSave(updated);
       onOpenChange(false);
     }
   };
@@ -76,7 +83,7 @@ export default function EditStudentDialog({
               {/* Name Input */}
               <div>
                 <label className="block text-[14px] font-semibold text-black mb-2">
-                  Nome do aluno
+                  Nome do aluno *
                 </label>
                 <input
                   type="text"
@@ -84,6 +91,21 @@ export default function EditStudentDialog({
                   onChange={(e) => setName(e.target.value)}
                   className="w-full h-[55px] px-4 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
                   placeholder="Digite o nome"
+                  required
+                />
+              </div>
+
+              {/* Registration Input */}
+              <div>
+                <label className="block text-[14px] font-semibold text-black mb-2">
+                  Matrícula
+                </label>
+                <input
+                  type="text"
+                  value={registration}
+                  onChange={(e) => setRegistration(e.target.value)}
+                  className="w-full h-[55px] px-4 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
+                  placeholder="Digite a matrícula"
                 />
               </div>
 
@@ -94,10 +116,38 @@ export default function EditStudentDialog({
                 </label>
                 <input
                   type="number"
-                  value={age}
-                  onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+                  value={age || ''}
+                  onChange={(e) => setAge(parseInt(e.target.value) || undefined)}
                   className="w-full h-[55px] px-4 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
                   placeholder="Digite a idade"
+                  min="0"
+                  max="150"
+                />
+              </div>
+
+              {/* Birth Date Input */}
+              <div>
+                <label className="block text-[14px] font-semibold text-black mb-2">
+                  Data de nascimento
+                </label>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="w-full h-[55px] px-4 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors"
+                />
+              </div>
+
+              {/* Observations Input */}
+              <div>
+                <label className="block text-[14px] font-semibold text-black mb-2">
+                  Observações
+                </label>
+                <textarea
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  className="w-full min-h-[100px] px-4 py-3 bg-white border border-[#c7c7c7] rounded-[22px] text-[14px] font-semibold text-black focus:outline-none focus:border-[#418DF0] transition-colors resize-none"
+                  placeholder="Digite observações sobre o aluno"
                 />
               </div>
             </div>

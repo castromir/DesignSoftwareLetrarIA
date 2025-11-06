@@ -6,3 +6,4 @@
 export { useAuth } from "./useAuth";
 export { useStudents } from "./useStudents";
 export { useActivities } from "./useActivities";
+export { useProfessionals } from "./useProfessionals";
