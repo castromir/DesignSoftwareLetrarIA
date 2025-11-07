@@ -49,7 +49,12 @@ import {
 import { useStudents } from "../hooks/useStudents";
 import { useActivities } from "../hooks/useActivities";
 import { useAuth } from "../contexts/AuthContext";
-import type { Student as StudentType, Activity, ActivityCreate, ActivityUpdate } from "../types";
+import type {
+  Student as StudentType,
+  Activity,
+  ActivityCreate,
+  ActivityUpdate,
+} from "../types";
 import { Alert, AlertDescription } from "./ui/alert";
 
 interface User {
@@ -73,13 +78,10 @@ interface RecentReading {
   progress: number;
 }
 
-export function ProfessionalHome({
-  user,
-  onLogout,
-}: ProfessionalHomeProps) {
+export function ProfessionalHome({ user, onLogout }: ProfessionalHomeProps) {
   const { currentUser } = useAuth();
   const professionalId = currentUser?.id;
-  
+
   const {
     students,
     stats,
@@ -101,8 +103,9 @@ export function ProfessionalHome({
   } = useActivities(professionalId);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStudent, setSelectedStudent] =
-    useState<StudentType | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentType | null>(
+    null,
+  );
   const [profileOpen, setProfileOpen] = useState(false);
   const [showTrail, setShowTrail] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
@@ -112,19 +115,16 @@ export function ProfessionalHome({
   const [selectedStory, setSelectedStory] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [studentToEdit, setStudentToEdit] =
-    useState<StudentType | null>(null);
-  const [studentToDelete, setStudentToDelete] =
-    useState<StudentType | null>(null);
+  const [studentToEdit, setStudentToEdit] = useState<StudentType | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<StudentType | null>(
+    null,
+  );
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showCreateActivity, setShowCreateActivity] =
-    useState(false);
-  const [showActivitiesList, setShowActivitiesList] =
-    useState(false);
+  const [showCreateActivity, setShowCreateActivity] = useState(false);
+  const [showActivitiesList, setShowActivitiesList] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
-  const [returnToActivitiesList, setReturnToActivitiesList] =
-    useState(false);
+  const [returnToActivitiesList, setReturnToActivitiesList] = useState(false);
   const [showTextReader, setShowTextReader] = useState(false);
   const [selectedText, setSelectedText] = useState<{
     id: number;
@@ -287,12 +287,12 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   ];
 
   const activitiesSummary = activities
-    .filter(a => a.status === 'in_progress')
+    .filter((a) => a.status === "in_progress")
     .slice(0, 3)
-    .map(activity => ({
+    .map((activity) => ({
       id: activity.id,
       title: activity.title,
-      date: activity.scheduled_date || activity.created_at.split('T')[0],
+      date: activity.scheduled_date || activity.created_at.split("T")[0],
       completed: 0,
       total: activity.student_ids?.length || 0,
     }));
@@ -322,9 +322,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   ];
 
   const filteredStudents = students.filter((student) =>
-    student.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()),
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Calculate age from birth_date for display
@@ -335,7 +333,10 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
         age--;
       }
       return age;
@@ -421,7 +422,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         observations: updatedStudent.observations,
         status: updatedStudent.status,
       });
-      const refreshed = students.find(s => s.id === updatedStudent.id);
+      const refreshed = students.find((s) => s.id === updatedStudent.id);
       if (refreshed) {
         setSelectedStudent(refreshed);
       }
@@ -453,7 +454,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         students={students}
         selectedStudentId={selectedStudent.id}
         onStudentChange={(studentId) => {
-          const newStudent = students.find(s => s.id === studentId);
+          const newStudent = students.find((s) => s.id === studentId);
           if (newStudent) {
             setSelectedStudent(newStudent);
           }
@@ -463,19 +464,13 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     );
   }
 
-  const handleEditFromList = (
-    student: StudentType,
-    e: React.MouseEvent,
-  ) => {
+  const handleEditFromList = (student: StudentType, e: React.MouseEvent) => {
     e.stopPropagation();
     setStudentToEdit(student);
     setShowEditDialog(true);
   };
 
-  const handleDeleteFromList = (
-    student: StudentType,
-    e: React.MouseEvent,
-  ) => {
+  const handleDeleteFromList = (student: StudentType, e: React.MouseEvent) => {
     e.stopPropagation();
     setStudentToDelete(student);
     setShowDeleteAlert(true);
@@ -531,18 +526,22 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         const today = new Date();
         age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        if (
+          monthDiff < 0 ||
+          (monthDiff === 0 && today.getDate() < birthDate.getDate())
+        ) {
           age--;
         }
       }
 
       // Map gender to backend format
-      const genderMap: Record<string, "male" | "female" | "other" | undefined> = {
-        "masculino": "male",
-        "feminino": "female",
-        "outro": "other",
-        "preferir-nao-informar": undefined,
-      };
+      const genderMap: Record<string, "male" | "female" | "other" | undefined> =
+        {
+          masculino: "male",
+          feminino: "female",
+          outro: "other",
+          "preferir-nao-informar": undefined,
+        };
 
       await createStudent({
         name: newStudentData.name,
@@ -562,21 +561,21 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   };
 
   const handlePrintAllTexts = () => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (printWindow) {
       const textContent = textLibrary
         .map((text, index) => {
           return `
-            <div style="page-break-after: ${index === textLibrary.length - 1 ? 'auto' : 'always'}; padding: 20px;">
+            <div style="page-break-after: ${index === textLibrary.length - 1 ? "auto" : "always"}; padding: 20px;">
               <h2>${text.title}</h2>
               <p><strong>${text.subtitle}</strong></p>
-              <p><strong>Tags:</strong> ${text.tags.map(t => t.name).join(', ')}</p>
+              <p><strong>Tags:</strong> ${text.tags.map((t) => t.name).join(", ")}</p>
               <hr />
               <div style="margin-top: 20px; white-space: pre-line;">${text.content}</div>
             </div>
           `;
         })
-        .join('');
+        .join("");
 
       printWindow.document.write(`
         <html>
@@ -598,7 +597,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     }
   };
 
-  const handleReadText = (text: typeof textLibrary[0]) => {
+  const handleReadText = (text: (typeof textLibrary)[0]) => {
     setSelectedText({
       id: text.id,
       title: text.title,
@@ -615,12 +614,12 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
 
   const getTagColor = (color: string) => {
     const colors: Record<string, { bg: string; text: string }> = {
-      blue: { bg: 'bg-blue-50', text: 'text-blue-700' },
-      green: { bg: 'bg-green-50', text: 'text-green-700' },
-      purple: { bg: 'bg-purple-50', text: 'text-purple-700' },
-      pink: { bg: 'bg-pink-50', text: 'text-pink-700' },
-      orange: { bg: 'bg-orange-50', text: 'text-orange-700' },
-      red: { bg: 'bg-red-50', text: 'text-red-700' },
+      blue: { bg: "bg-blue-50", text: "text-blue-700" },
+      green: { bg: "bg-green-50", text: "text-green-700" },
+      purple: { bg: "bg-purple-50", text: "text-purple-700" },
+      pink: { bg: "bg-pink-50", text: "text-pink-700" },
+      orange: { bg: "bg-orange-50", text: "text-orange-700" },
+      red: { bg: "bg-red-50", text: "text-red-700" },
     };
     return colors[color] || colors.blue;
   };
@@ -757,9 +756,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
 
   // Show Reports Analytics fullscreen
   if (showReports) {
-    return (
-      <ReportsAnalytics onBack={() => setShowReports(false)} />
-    );
+    return <ReportsAnalytics onBack={() => setShowReports(false)} />;
   }
 
   // Show Diagnostics List fullscreen
@@ -803,9 +800,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                 <h1 className="text-white font-semibold text-[17px] leading-tight">
                   Letrar IA
                 </h1>
-                <p className="text-white/80 text-[12px]">
-                  Painel do Professor
-                </p>
+                <p className="text-white/80 text-[12px]">Painel do Professor</p>
               </div>
             </button>
 
@@ -823,7 +818,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         </div>
       </header>
 
-        {/* Main Content */}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
         {/* Error Alerts */}
         {studentsError && (
@@ -914,25 +909,13 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
               {/* Alunos ativos */}
               <div className="flex items-center gap-3 border-r border-black/8 pr-4">
                 <div className="bg-blue-50 rounded-lg p-2">
-                  <svg
-                    className="w-6 h-7"
-                    fill="none"
-                    viewBox="0 0 29 32"
-                  >
-                    <path
-                      d={svgPaths.p26f16c00}
-                      fill="#0056B9"
-                    />
-                    <path
-                      d={svgPaths.p15e5eb80}
-                      fill="#0056B9"
-                    />
+                  <svg className="w-6 h-7" fill="none" viewBox="0 0 29 32">
+                    <path d={svgPaths.p26f16c00} fill="#0056B9" />
+                    <path d={svgPaths.p15e5eb80} fill="#0056B9" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[12px] text-black/60">
-                    Alunos ativos
-                  </p>
+                  <p className="text-[12px] text-black/60">Alunos ativos</p>
                   <p className="text-[24px] font-semibold text-[#0056b9]">
                     {stats.active}
                   </p>
@@ -942,11 +925,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
               {/* Leituras concluídas hoje */}
               <div className="flex items-center gap-3 border-r border-black/8 px-4">
                 <div className="bg-blue-50 rounded-lg p-2">
-                  <svg
-                    className="w-7 h-6"
-                    fill="none"
-                    viewBox="0 0 30 29"
-                  >
+                  <svg className="w-7 h-6" fill="none" viewBox="0 0 30 29">
                     <path
                       d={svgPaths.p31cef00}
                       stroke="#0056B9"
@@ -963,12 +942,8 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[12px] text-black/60">
-                    Concluídas hoje
-                  </p>
-                  <p className="text-[24px] font-semibold text-[#0056b9]">
-                    5
-                  </p>
+                  <p className="text-[12px] text-black/60">Concluídas hoje</p>
+                  <p className="text-[24px] font-semibold text-[#0056b9]">5</p>
                 </div>
               </div>
 
@@ -978,9 +953,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                   <BarChart3 className="w-6 h-6 text-[#0056b9]" />
                 </div>
                 <div>
-                  <p className="text-[12px] text-black/60">
-                    Engajamento
-                  </p>
+                  <p className="text-[12px] text-black/60">Engajamento</p>
                   <p className="text-[24px] font-semibold text-[#0056b9]">
                     87%
                   </p>
@@ -1001,82 +974,30 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
               className="bg-white rounded-[10px] border border-black/12 p-4 flex flex-col items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <FileText className="h-4 w-4 text-[#0056b9]" />
-              <span className="text-[13px] text-black">
-                Nova Atividade
-              </span>
+              <span className="text-[13px] text-black">Nova Atividade</span>
             </button>
             <button
               onClick={() => setShowReports(true)}
               className="bg-white rounded-[10px] border border-black/12 p-4 flex flex-col items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <BarChart3 className="h-4 w-4 text-[#0056b9]" />
-              <span className="text-[13px] text-black">
-                Métricas Gerais
-              </span>
+              <span className="text-[13px] text-black">Métricas Gerais</span>
             </button>
             <button
               onClick={() => setShowDiagnostic(true)}
               className="bg-white rounded-[10px] border border-black/12 p-4 flex flex-col items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <ClipboardCheck className="h-4 w-4 text-[#0056b9]" />
-              <span className="text-[13px] text-black">
-                Diagnóstico
-              </span>
+              <span className="text-[13px] text-black">Diagnóstico</span>
             </button>
           </div>
         </section>
 
-        {/* Insights da IA - simplified on mobile */}
-        <section className="mb-5">
-          <div className="bg-blue-50 rounded-[10px] border border-[rgba(0,40,173,0.25)] p-4">
-            <div className="flex items-start gap-3">
-              <div className="bg-[#155dfc] rounded-lg p-2 flex-shrink-0">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h4 className="text-[14px] font-semibold text-black mb-2">
-                  Insights da IA
-                </h4>
-                {/* Mobile: only show first insight */}
-                <p className="text-[13px] text-black/80 lg:hidden">
-                  2 alunos apresentam dificuldade com sílabas
-                  complexas. Sugerimos atividades de reforço.
-                </p>
-                {/* Desktop: show all insights */}
-                <ul className="hidden lg:block space-y-2 text-[13px] text-black/80">
-                  <li className="flex items-start gap-2">
-                    <Target className="h-4 w-4 text-[#155dfc] flex-shrink-0 mt-0.5" />
-                    <span>
-                      2 alunos apresentam dificuldade com
-                      sílabas complexas. Sugerimos atividades de
-                      reforço.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Award className="h-4 w-4 text-[#155dfc] flex-shrink-0 mt-0.5" />
-                    <span>
-                      Ana Clara e Beatriz Lima estão prontas
-                      para atividades de nível avançado.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[#155dfc] flex-shrink-0 mt-0.5" />
-                    <span>
-                      A turma teve 87% de engajamento nas
-                      atividades interativas esta semana!
-                    </span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Atividades em andamento - Desktop */}
-        <section className="hidden lg:block mb-6">
-          <div className="grid grid-cols-3 gap-4">
+        {/* Atividades em andamento - agora ocupa toda a largura disponível */}
+        <section className="mb-6">
+          <div className="grid grid-cols-1 gap-4">
             {/* Atividades */}
-            <div className="col-span-2">
+            <div>
               <h3 className="text-[15px] font-semibold text-black mb-3">
                 Atividades em andamento
               </h3>
@@ -1100,9 +1021,9 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                                 {activity.title}
                               </h4>
                               <p className="text-[12px] text-black/60">
-                                {new Date(
-                                  activity.date,
-                                ).toLocaleDateString("pt-BR")}
+                                {new Date(activity.date).toLocaleDateString(
+                                  "pt-BR",
+                                )}
                               </p>
                             </div>
                           </div>
@@ -1132,47 +1053,43 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
               </div>
             </div>
 
-            {/* Alunos que precisam de atenção */}
-            <div className="col-span-1">
-              {studentsNeedingAttention.length > 0 && (
-                <div>
-                  <h3 className="text-[15px] font-semibold text-black mb-3">
-                    Atenção necessária
-                  </h3>
-                  <div className="bg-amber-50 rounded-[10px] border border-amber-200 p-4">
-                    <div className="flex items-start gap-2 mb-3">
-                      <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-[12px] text-amber-800">
-                        {studentsNeedingAttention.length}{" "}
-                        {studentsNeedingAttention.length === 1
-                          ? "aluno com"
-                          : "alunos com"}{" "}
-                        progresso baixo
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      {studentsNeedingAttention.map(
-                        (student) => (
-                          <div
-                            key={student.id}
-                            className="bg-white rounded-lg p-2.5"
-                          >
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[13px] font-medium text-black truncate">
-                                {student.name}
-                              </span>
-                              <span className="text-[12px] text-amber-700 font-medium">
-                                Inativo
-                              </span>
-                            </div>
-                          </div>
-                        ),
-                      )}
-                    </div>
+            {/* Alunos que precisam de atenção - exibido abaixo das atividades quando houver */}
+            {studentsNeedingAttention.length > 0 && (
+              <div>
+                <h3 className="text-[15px] font-semibold text-black mb-3">
+                  Atenção necessária
+                </h3>
+                <div className="bg-amber-50 rounded-[10px] border border-amber-200 p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-[12px] text-amber-800">
+                      {studentsNeedingAttention.length}{" "}
+                      {studentsNeedingAttention.length === 1
+                        ? "aluno com"
+                        : "alunos com"}{" "}
+                      progresso baixo
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {studentsNeedingAttention.map((student) => (
+                      <div
+                        key={student.id}
+                        className="bg-white rounded-lg p-2.5"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[13px] font-medium text-black truncate">
+                            {student.name}
+                          </span>
+                          <span className="text-[12px] text-amber-700 font-medium">
+                            Inativo
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -1220,7 +1137,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                   })}
                 </div>
 
-                <button 
+                <button
                   onClick={() => handleReadText(text)}
                   className="w-full flex items-center justify-between text-[#0056b9] hover:text-[#004080] transition-colors cursor-pointer group"
                 >
@@ -1260,9 +1177,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
               <span className="hidden sm:inline text-[13px]">
                 Cadastrar aluno
               </span>
-              <span className="sm:hidden text-[13px]">
-                Novo
-              </span>
+              <span className="sm:hidden text-[13px]">Novo</span>
             </Button>
           </div>
 
@@ -1312,18 +1227,14 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                   <button
                     className="p-2 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                     title="Editar"
-                    onClick={(e) =>
-                      handleEditFromList(student, e)
-                    }
+                    onClick={(e) => handleEditFromList(student, e)}
                   >
                     <Pencil className="h-4 w-4 text-[#0056b9]" />
                   </button>
                   <button
                     className="p-2 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                     title="Excluir"
-                    onClick={(e) =>
-                      handleDeleteFromList(student, e)
-                    }
+                    onClick={(e) => handleDeleteFromList(student, e)}
                   >
                     <Trash2 className="h-4 w-4 text-red-600" />
                   </button>
@@ -1363,10 +1274,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
       />
 
       {/* Delete Confirmation Alert (from list) */}
-      <AlertDialog
-        open={showDeleteAlert}
-        onOpenChange={setShowDeleteAlert}
-      >
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent className="bg-white rounded-lg shadow-lg w-[calc(100%-2rem)] max-w-md p-6">
           <AlertDialogTitle className="text-[19px] font-semibold text-black mb-2">
             Confirmar exclusão
