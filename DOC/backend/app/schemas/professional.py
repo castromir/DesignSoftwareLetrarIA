@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 class ProfessionalBase(BaseModel):
@@ -20,6 +21,8 @@ class ProfessionalUpdate(BaseModel):
     function: Optional[str] = None
     password: Optional[str] = None
     username: Optional[str] = None
+    active: Optional[bool] = None
+    status: Optional[str] = None
 
 
 class ProfessionalResponse(ProfessionalBase):
@@ -30,7 +33,7 @@ class ProfessionalResponse(ProfessionalBase):
     role: str
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -40,4 +43,3 @@ class ProfessionalListResponse(BaseModel):
     active: int
     inactive: int
     professionals: list[ProfessionalResponse]
-

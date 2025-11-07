@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # PostgreSQL Database
@@ -50,7 +50,7 @@ services:
   # Frontend (React/Vite) - Desenvolvimento
   frontend:
     build:
-      context: ./Código protótipo
+      context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: letraria-frontend-dev
     ports:
@@ -58,7 +58,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./Código protótipo:/app
+      - ./frontend:/app
       - /app/node_modules
     networks:
       - letraria-network-dev
@@ -74,4 +74,3 @@ volumes:
 networks:
   letraria-network-dev:
     driver: bridge
-

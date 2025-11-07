@@ -1,9 +1,11 @@
-from sqlalchemy import Column, String, Enum, DateTime, func
+import enum
+import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-import uuid
+
 from app.database import Base
-import enum
 
 
 class UserRole(str, enum.Enum):
@@ -22,8 +24,23 @@ class User(Base):
     function = Column(String(255), nullable=True)
     username = Column(String(255), unique=True, nullable=True, index=True)
     google_id = Column(String(255), unique=True, nullable=True)
+    # active flag to enable/disable professional login and mark status
+    active = Column(
+        Boolean, nullable=False, default=True, server_default="true", index=True
+    )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
-    students = relationship("Student", back_populates="professional", foreign_keys="Student.professional_id")
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
+    students = relationship(
+        "Student", back_populates="professional", foreign_keys="Student.professional_id"
+    )
+
+    @property
+    def status(self) -> str:
+        """
+        Convenience property returning a string status compatible with the frontend.
+        Returns 'active' when `active` is truthy, otherwise 'inactive'.
+        """
+        return "active" if self.active else "inactive"
