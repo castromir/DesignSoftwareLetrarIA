@@ -38,7 +38,6 @@ export function EditProfessionalDialog({
     username: "",
     function: "",
     password: "",
-    status: "Ativo",
   });
 
   useEffect(() => {
@@ -46,21 +45,12 @@ export function EditProfessionalDialog({
       const emailUsername = professional.email
         ? professional.email.split("@")[0]
         : "";
-      const status =
-        // prefer `status` if present, fall back to boolean `active` if available, default to "Ativo"
-        professional.status ??
-        (professional.active !== undefined
-          ? professional.active
-            ? "Ativo"
-            : "Inativo"
-          : "Ativo");
       setFormData({
         name: professional.name || "",
         email: professional.email || "",
         username: emailUsername,
         function: professional.function || "",
         password: "",
-        status,
       });
     } else {
       setFormData({
@@ -69,7 +59,6 @@ export function EditProfessionalDialog({
         username: "",
         function: "",
         password: "",
-        status: "Ativo",
       });
     }
   }, [professional]);
@@ -95,13 +84,6 @@ export function EditProfessionalDialog({
 
       if (formData.password) {
         updated.password = formData.password;
-      }
-
-      // map the status string to fields that backend might expect
-      if (formData.status !== undefined) {
-        updated.status = formData.status;
-        // also provide a boolean `active` for backends that use a boolean flag
-        updated.active = formData.status === "Ativo";
       }
 
       await onSave(updated as Professional);
@@ -262,33 +244,6 @@ export function EditProfessionalDialog({
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* Status */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="edit-status"
-                  className="text-[14px] text-neutral-950"
-                >
-                  Status
-                </Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, status: value })
-                  }
-                >
-                  <SelectTrigger className="h-9 bg-[#f3f3f5] rounded-lg border-0 focus:ring-2 focus:ring-blue-500">
-                    <SelectValue placeholder="Ativo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ativo">Ativo</SelectItem>
-                    <SelectItem value="Inativo">Inativo</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-[12px] text-[#6b7280]">
-                  Profissionais inativos terão login desabilitado no sistema.
-                </p>
               </div>
             </div>
           </div>

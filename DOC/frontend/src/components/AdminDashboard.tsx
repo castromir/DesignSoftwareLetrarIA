@@ -239,7 +239,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
             </div>
             <button
               onClick={onLogout}
-              className="h-8 px-2 sm:px-4 bg-white border border-[rgba(0,0,0,0.1)] rounded-lg text-[12px] sm:text-[14px] leading-5 hover:bg-gray-50 transition-colors flex items-center gap-1 sm:gap-2"
+              className="h-8 cursor-pointer px-2 sm:px-4 bg-white border border-[rgba(0,0,0,0.1)] rounded-lg text-[12px] sm:text-[14px] leading-5 hover:bg-gray-50 transition-colors flex items-center gap-1 sm:gap-2"
             >
               <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Sair</span>
@@ -331,7 +331,9 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                 className="h-9 px-3 sm:px-4 bg-[#030213] text-white rounded-lg text-[12px] sm:text-[14px] leading-5 hover:bg-[#030213]/90 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 <UserPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Adicionar Profissional</span>
+                <span className="hidden sm:inline cursor-pointer">
+                  Adicionar Profissional
+                </span>
                 <span className="sm:hidden">Adicionar</span>
               </button>
             </div>
@@ -350,9 +352,9 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                     <TableHead className="text-[14px] leading-5 h-10">
                       Função
                     </TableHead>
-                    <TableHead className="text-[14px] leading-5 h-10">
+                    {/*<TableHead className="text-[14px] leading-5 h-10">
                       Status
-                    </TableHead>
+                    </TableHead>*/}
                     <TableHead className="text-[14px] leading-5 h-10">
                       Data de Cadastro
                     </TableHead>
@@ -398,14 +400,17 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                           <TableCell className="text-[14px] leading-5">
                             {professional.function || "Não definida"}
                           </TableCell>
-                          <TableCell>
+
+                          {/* Obseleto tendo em vista que não há necessidade de exibir essa informação */}
+
+                          {/*<TableCell>
                             <Badge
                               variant="default"
                               className={`h-[22px] text-[12px] leading-4 ${isActive ? "bg-[#00a63e] text-white" : "bg-[#99a1af] text-white"}`}
                             >
                               {isActive ? "Ativo" : "Inativo"}
                             </Badge>
-                          </TableCell>
+                          </TableCell>*/}
                           <TableCell className="text-[14px] leading-5">
                             {new Date(
                               professional.created_at,
@@ -473,12 +478,14 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                             {professional.function || "Não definida"}
                           </p>
                         </div>
-                        <Badge
+
+                        {/* Obselto tendo em vista que não há necessidade de exibir o status */}
+                        {/*<Badge
                           variant="default"
                           className={`h-[22px] text-[12px] leading-4 ${isActive ? "bg-[#00a63e] text-white" : "bg-[#99a1af] text-white"}`}
                         >
                           {isActive ? "Ativo" : "Inativo"}
-                        </Badge>
+                        </Badge>*/}
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-[rgba(0,0,0,0.1)]">
                         <span className="text-[12px] text-[#717182]">
@@ -515,12 +522,14 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       {/* Add Professional Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[600px] bg-white rounded-lg border border-[#d9d9d9] shadow-[0px_16px_32px_-4px_rgba(12,12,13,0.1),0px_4px_4px_-4px_rgba(12,12,13,0.05)] p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
-          <button
+          {/* Já existe um icon de fechar padrão do Dialog */}
+
+          {/*<button
             onClick={() => setIsDialogOpen(false)}
             className="absolute right-2 top-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5 text-[#1e1e1e]" />
-          </button>
+          </button>*/}
 
           <form
             onSubmit={handleAddProfessional}
@@ -570,7 +579,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                     htmlFor="prof-username"
                     className="text-[16px] text-[#1e1e1e]"
                   >
-                    Username
+                    Email
                   </Label>
                   <div className="relative">
                     <div className="absolute left-[11.9px] top-[8px] w-5 h-5">
@@ -597,8 +606,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                   </div>
                 </div>
 
-                {/* Username */}
-                <div className="space-y-2">
+                {/* Username - Comentado pois é desnecessário */}
+                {/*<div className="space-y-2">
                   <Label
                     htmlFor="prof-username"
                     className="text-[16px] text-[#1e1e1e]"
@@ -626,7 +635,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                       }
                     />
                   </div>
-                </div>
+                </div>*/}
 
                 {/* Senha */}
                 <div className="space-y-2">

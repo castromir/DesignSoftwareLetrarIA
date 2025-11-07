@@ -38,8 +38,6 @@ export interface ProfessionalCreate {
   username?: string;
   // optional initial active flag (if backend supports setting this on create)
   active?: boolean;
-  // optional status string for compatibility
-  status?: string;
 }
 
 export interface ProfessionalUpdate {
@@ -48,9 +46,8 @@ export interface ProfessionalUpdate {
   function?: string;
   password?: string;
   username?: string;
-  // allow updating active/status from frontend admin UI
+  // allow updating active from frontend admin UI
   active?: boolean;
-  status?: string;
 }
 
 export interface ProfessionalListResponse {
