@@ -53,7 +53,10 @@ Executar o seed para criar usuários iniciais:
 docker exec letraria-backend-dev python /app/run_seed.py
 ```
 
-Este comando criará 4 usuários no banco de dados.
+Este comando criará:
+- 4 usuários (1 admin + 3 profissionais)
+- 6 alunos (vinculados ao primeiro profissional)
+- 6 atividades (vinculadas aos alunos do profissional)
 
 ### 5. Verificar se os Serviços Estão Rodando
 
@@ -75,20 +78,129 @@ Após executar os seeders, os seguintes usuários estarão disponíveis para log
 - **Role:** Admin
 
 ### Professores (3 usuários)
-- **Email:** `professor1@letraria.com`
+- **Email:** `professor@letraria.com`
 - **Senha:** `prof123`
 - **Role:** Professional
-- **Nome:** Ana Silva
+- **Nome:** Maria Silva
+- **Função:** Professora de Alfabetização
+- **Username:** maria.silva
 
-- **Email:** `professor2@letraria.com`
+- **Email:** `joao.santos@letraria.com`
 - **Senha:** `prof123`
 - **Role:** Professional
-- **Nome:** Carlos Santos
+- **Nome:** João Santos
+- **Função:** Coordenador Pedagógico
+- **Username:** joao.santos
 
-- **Email:** `professor3@letraria.com`
+- **Email:** `ana.paula@letraria.com`
 - **Senha:** `prof123`
 - **Role:** Professional
-- **Nome:** Maria Oliveira
+- **Nome:** Ana Paula
+- **Função:** Professora de Reforço
+- **Username:** ana.paula
+
+## Seeders Disponíveis
+
+O projeto possui seeders para popular o banco de dados com dados iniciais:
+
+### Executar Todos os Seeders
+```bash
+docker exec letraria-backend-dev python /app/run_seed.py
+```
+
+### Executar Seeders Individuais
+```bash
+# Apenas usuários e profissionais
+docker exec letraria-backend-dev python -c "import asyncio; from seeds.seed_users import seed_users; asyncio.run(seed_users())"
+
+# Apenas alunos
+docker exec letraria-backend-dev python -c "import asyncio; from seeds.seed_students import seed_students; asyncio.run(seed_students())"
+
+# Apenas atividades
+docker exec letraria-backend-dev python -c "import asyncio; from seeds.seed_activities import seed_activities; asyncio.run(seed_activities())"
+```
+
+### Alunos Criados pelo Seeder
+
+Os seguintes alunos são criados automaticamente e associados ao primeiro profissional encontrado:
+
+1. **João Augusto**
+   - Matrícula: 2024001
+   - Idade: 12 anos
+   - Gênero: Masculino
+   - Observações: Aluno dedicado e participativo nas atividades de leitura.
+
+2. **Ana Clara**
+   - Matrícula: 2024002
+   - Idade: 11 anos
+   - Gênero: Feminino
+   - Observações: Excelente progresso em atividades de escrita criativa.
+
+3. **Júlia**
+   - Matrícula: 2024003
+   - Idade: 11 anos
+   - Gênero: Feminino
+   - Observações: Necessita atenção especial com sílabas complexas.
+
+4. **Manuela Oliveira**
+   - Matrícula: 2024004
+   - Idade: 10 anos
+   - Gênero: Feminino
+   - Observações: Bom desempenho em atividades de leitura.
+
+5. **Pedro Santos**
+   - Matrícula: 2024005
+   - Idade: 12 anos
+   - Gênero: Masculino
+   - Observações: Requer reforço em atividades de escrita.
+
+6. **Beatriz Lima**
+   - Matrícula: 2024006
+   - Idade: 11 anos
+   - Gênero: Feminino
+   - Observações: Pronta para atividades de nível avançado.
+
+### Atividades Criadas pelo Seeder
+
+O seeder de atividades cria automaticamente 6 atividades para cada profissional que possui alunos cadastrados:
+
+1. **Leitura de palavras com R**
+   - Tipo: Leitura
+   - Dificuldade: Fácil
+   - Status: Concluída
+   - Alunos: 3 alunos vinculados
+
+2. **Leitura de frases simples**
+   - Tipo: Leitura
+   - Dificuldade: Médio
+   - Status: Em andamento
+   - Alunos: 2 alunos vinculados
+
+3. **Escrita de palavras com sílabas complexas**
+   - Tipo: Escrita
+   - Dificuldade: Médio
+   - Status: Pendente
+   - Alunos: 3 alunos vinculados
+
+4. **Leitura de texto narrativo**
+   - Tipo: Leitura
+   - Dificuldade: Difícil
+   - Status: Pendente
+   - Alunos: 3 alunos vinculados
+
+5. **Produção de texto criativo**
+   - Tipo: Escrita
+   - Dificuldade: Difícil
+   - Status: Pendente
+   - Alunos: 2 alunos vinculados
+
+6. **Leitura de palavras com L**
+   - Tipo: Leitura
+   - Dificuldade: Fácil
+   - Status: Concluída
+   - Alunos: 2 alunos vinculados
+
+**Nota:** As atividades são criadas apenas para profissionais que possuem alunos cadastrados. Cada atividade é vinculada aos alunos através da tabela `student_activities`.
 
 ## Acessar a Aplicação
 
@@ -105,8 +217,8 @@ Após executar os seeders, os seguintes usuários estarão disponíveis para log
 - **Host:** localhost
 - **Porta:** 55432
 - **Database:** letraria_db
-- **Usuário:** letrarIA
-- **Senha:** 123
+- **Usuário:** letraria_user
+- **Senha:** letraria_password
 
 ## Comandos Úteis
 
@@ -165,7 +277,7 @@ Para reexecutar o seeder, primeiro é necessário limpar os usuários do banco:
 
 ```bash
 # Conectar ao banco e remover usuários
-docker exec -it letraria-db-dev-new psql -U letrarIA -d letraria_db -c "DELETE FROM users;"
+docker exec -it letraria-db-dev-new psql -U letraria_user -d letraria_db -c "DELETE FROM users;"
 
 # Executar o seeder novamente
 docker exec letraria-backend-dev python /app/run_seed.py

@@ -15,6 +15,40 @@ export interface User {
   updatedAt: Date;
 }
 
+// Profissionais
+export interface Professional {
+  id: string;
+  email: string;
+  name: string;
+  function?: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProfessionalCreate {
+  name: string;
+  email: string;
+  password: string;
+  function?: string;
+  username?: string;
+}
+
+export interface ProfessionalUpdate {
+  name?: string;
+  email?: string;
+  function?: string;
+  password?: string;
+  username?: string;
+}
+
+export interface ProfessionalListResponse {
+  total: number;
+  active: number;
+  inactive: number;
+  professionals: Professional[];
+}
+
 export interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
@@ -31,27 +65,111 @@ export interface RegisterData {
 }
 
 // Estudantes
+export type StudentStatus = "active" | "inactive";
+export type Gender = "male" | "female" | "other";
+
 export interface Student {
   id: string;
   name: string;
-  email: string;
-  professionalId: string;
-  enrollmentDate: Date;
-  status: "active" | "inactive";
-  metadata?: Record<string, unknown>;
+  professional_id: string;
+  registration?: string;
+  gender?: Gender;
+  birth_date?: string; // ISO date string
+  age?: number;
+  observations?: string;
+  profile_image?: string;
+  special_needs?: Record<string, unknown>;
+  status: StudentStatus;
+  created_at: string; // ISO datetime string
+  updated_at: string; // ISO datetime string
+  deleted_at?: string; // ISO datetime string
+}
+
+export interface StudentCreate {
+  name: string;
+  professional_id: string;
+  registration?: string;
+  gender?: Gender;
+  birth_date?: string; // ISO date string (YYYY-MM-DD)
+  age?: number;
+  observations?: string;
+  profile_image?: string;
+  special_needs?: Record<string, unknown>;
+  status?: StudentStatus;
+}
+
+export interface StudentUpdate {
+  name?: string;
+  professional_id?: string;
+  registration?: string;
+  gender?: Gender;
+  birth_date?: string; // ISO date string (YYYY-MM-DD)
+  age?: number;
+  observations?: string;
+  profile_image?: string;
+  special_needs?: Record<string, unknown>;
+  status?: StudentStatus;
+}
+
+export interface StudentListResponse {
+  total: number;
+  active: number;
+  inactive: number;
+  students: Student[];
 }
 
 // Atividades
+export type ActivityType = "reading" | "writing" | "diagnostic";
+export type ActivityDifficulty = "easy" | "medium" | "hard";
+export type ActivityStatus = "pending" | "in_progress" | "completed";
+
 export interface Activity {
   id: string;
   title: string;
-  description: string;
-  type: "reading" | "writing" | "diagnostic";
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  dueDate?: Date;
-  status: "draft" | "published" | "archived";
+  description?: string;
+  type: ActivityType;
+  difficulty?: ActivityDifficulty;
+  scheduled_date?: string; // ISO date string (YYYY-MM-DD)
+  scheduled_time?: string; // Time string (HH:MM)
+  words?: string[];
+  status: ActivityStatus;
+  created_by: string;
+  created_at: string; // ISO datetime string
+  updated_by?: string;
+  updated_at: string; // ISO datetime string
+  student_ids: string[];
+}
+
+export interface ActivityCreate {
+  title: string;
+  description?: string;
+  type: ActivityType;
+  difficulty?: ActivityDifficulty;
+  scheduled_date?: string; // ISO date string (YYYY-MM-DD)
+  scheduled_time?: string; // Time string (HH:MM)
+  words?: string[];
+  status?: ActivityStatus;
+  student_ids: string[];
+}
+
+export interface ActivityUpdate {
+  title?: string;
+  description?: string;
+  type?: ActivityType;
+  difficulty?: ActivityDifficulty;
+  scheduled_date?: string; // ISO date string (YYYY-MM-DD)
+  scheduled_time?: string; // Time string (HH:MM)
+  words?: string[];
+  status?: ActivityStatus;
+  student_ids?: string[];
+}
+
+export interface ActivityListResponse {
+  total: number;
+  pending: number;
+  in_progress: number;
+  completed: number;
+  activities: Activity[];
 }
 
 // Leitura

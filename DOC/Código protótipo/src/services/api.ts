@@ -1,4 +1,18 @@
 import { API_BASE_URL } from "../utils/constants";
+import type {
+  Professional,
+  ProfessionalCreate,
+  ProfessionalUpdate,
+  ProfessionalListResponse,
+  Student,
+  StudentCreate,
+  StudentUpdate,
+  StudentListResponse,
+  Activity,
+  ActivityCreate,
+  ActivityUpdate,
+  ActivityListResponse,
+} from "../types";
 
 class ApiError extends Error {
   constructor(
@@ -100,8 +114,13 @@ export const api = {
     }
   },
 
-  get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET" });
+  get<T>(endpoint: string, options?: { params?: Record<string, string> }): Promise<T> {
+    let url = endpoint;
+    if (options?.params) {
+      const queryString = new URLSearchParams(options.params).toString();
+      url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryString}`;
+    }
+    return this.request<T>(url, { method: "GET" });
   },
 
   post<T>(endpoint: string, data?: unknown): Promise<T> {
@@ -127,6 +146,53 @@ export const api = {
 
   delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: "DELETE" });
+  },
+
+  async uploadFile<T>(endpoint: string, file: File, additionalData?: Record<string, string>): Promise<T> {
+    const token = getAuthToken();
+    const url = `${API_BASE_URL}${endpoint}`;
+
+    const formData = new FormData();
+    formData.append("audio", file);
+    
+    if (additionalData) {
+      Object.entries(additionalData).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+    }
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new ApiError(
+          data.detail || data.message || "Erro na requisição",
+          response.status,
+          data
+        );
+      }
+
+      return data as T;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(
+        error instanceof Error ? error.message : "Erro desconhecido",
+        0
+      );
+    }
   },
 };
 
@@ -160,6 +226,95 @@ export const authApi = {
 
   logout() {
     clearAuthData();
+  },
+};
+
+export const professionalsApi = {
+  async list() {
+    return api.get<ProfessionalListResponse>("/professionals");
+  },
+
+  async getById(id: string) {
+    return api.get<Professional>(`/professionals/${id}`);
+  },
+
+  async create(data: ProfessionalCreate) {
+    return api.post<Professional>("/professionals", data);
+  },
+
+  async update(id: string, data: ProfessionalUpdate) {
+    return api.put<Professional>(`/professionals/${id}`, data);
+  },
+
+  async delete(id: string) {
+    return api.delete<void>(`/professionals/${id}`);
+  },
+};
+
+export const studentsApi = {
+  async list(professionalId?: string) {
+    const params = professionalId ? { professional_id: professionalId } : {};
+    const queryString = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+    return api.get<StudentListResponse>(`/students${queryString}`);
+  },
+
+  async getById(id: string) {
+    return api.get<Student>(`/students/${id}`);
+  },
+
+  async create(data: StudentCreate) {
+    return api.post<Student>("/students", data);
+  },
+
+  async update(id: string, data: StudentUpdate) {
+    return api.put<Student>(`/students/${id}`, data);
+  },
+
+  async delete(id: string) {
+    return api.delete<void>(`/students/${id}`);
+  },
+};
+
+export const activitiesApi = {
+  async list(professionalId?: string, status?: string) {
+    const params: Record<string, string> = {};
+    if (professionalId) params.professional_id = professionalId;
+    if (status) params.status = status;
+    const queryString = Object.keys(params).length > 0
+      ? `?${new URLSearchParams(params).toString()}`
+      : "";
+    return api.get<ActivityListResponse>(`/activities${queryString}`);
+  },
+
+  async getById(id: string) {
+    return api.get<Activity>(`/activities/${id}`);
+  },
+
+  async create(data: ActivityCreate) {
+    return api.post<Activity>("/activities", data);
+  },
+
+  async update(id: string, data: ActivityUpdate) {
+    return api.put<Activity>(`/activities/${id}`, data);
+  },
+
+  async delete(id: string) {
+    return api.delete<void>(`/activities/${id}`);
+  },
+};
+
+export interface TranscriptionResponse {
+  transcript: string;
+  filename: string;
+  content_type: string;
+  language: string;
+}
+
+export const transcriptionApi = {
+  async transcribe(audioFile: File, language: string = "pt"): Promise<TranscriptionResponse> {
+    return api.uploadFile<TranscriptionResponse>("/transcription/transcribe", audioFile, {
+      language,
+    });
   },
 };
 

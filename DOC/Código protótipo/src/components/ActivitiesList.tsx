@@ -19,33 +19,15 @@ import {
 } from './ui/alert-dialog';
 import { toast } from 'sonner@2.0.3';
 import EditActivityDialog from './EditActivityDialog';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
-
-interface Activity {
-  id: number;
-  type: 'reading' | 'writing';
-  title: string;
-  description: string;
-  studentIds: number[];
-  scheduledDate?: Date;
-  scheduledTime?: string;
-  words?: string[];
-  difficulty: 'easy' | 'medium' | 'hard';
-  createdAt: Date;
-  status: 'pending' | 'in-progress' | 'completed';
-}
+import type { Activity, Student, ActivityUpdate } from '../types';
 
 interface ActivitiesListProps {
   onBack: () => void;
   activities: Activity[];
   students: Student[];
-  onDeleteActivity: (id: number) => void;
-  onUpdateActivity: (activity: Activity) => void;
+  stats?: { total: number; pending: number; in_progress: number; completed: number };
+  onDeleteActivity: (id: string) => Promise<void>;
+  onUpdateActivity: (activity: Activity) => Promise<void>;
   onCreateActivity?: () => void;
 }
 
@@ -73,13 +55,13 @@ const difficultyColors = {
 
 const statusLabels = {
   pending: 'Pendente',
-  'in-progress': 'Em Andamento',
+  in_progress: 'Em Andamento',
   completed: 'Concluída',
 };
 
 const statusColors = {
   pending: 'bg-blue-100 text-blue-700',
-  'in-progress': 'bg-purple-100 text-purple-700',
+  in_progress: 'bg-purple-100 text-purple-700',
   completed: 'bg-green-100 text-green-700',
 };
 
@@ -87,11 +69,12 @@ export default function ActivitiesList({
   onBack, 
   activities, 
   students,
+  stats,
   onDeleteActivity,
   onUpdateActivity,
   onCreateActivity 
 }: ActivitiesListProps) {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
   const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [activityToEdit, setActivityToEdit] = useState<Activity | null>(null);
@@ -102,7 +85,7 @@ export default function ActivitiesList({
     return activity.status === filter;
   });
 
-  const getStudentNames = (studentIds: number[]) => {
+  const getStudentNames = (studentIds: string[]) => {
     return studentIds
       .map(id => students.find(s => s.id === id)?.name)
       .filter(Boolean)
@@ -114,25 +97,40 @@ export default function ActivitiesList({
     setShowDeleteDialog(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (activityToDelete) {
-      onDeleteActivity(activityToDelete.id);
-      toast.success('Atividade excluída com sucesso');
-      setShowDeleteDialog(false);
-      setActivityToDelete(null);
+      try {
+        await onDeleteActivity(activityToDelete.id);
+        toast.success('Atividade excluída com sucesso');
+        setShowDeleteDialog(false);
+        setActivityToDelete(null);
+      } catch (error) {
+        toast.error('Erro ao excluir atividade');
+        console.error('Error deleting activity:', error);
+      }
     }
   };
 
-  const handleStartActivity = (activity: Activity) => {
-    const updatedActivity = { ...activity, status: 'in-progress' as const };
-    onUpdateActivity(updatedActivity);
-    toast.success('Atividade iniciada!');
+  const handleStartActivity = async (activity: Activity) => {
+    try {
+      const updatedActivity: Activity = { ...activity, status: 'in_progress' as const };
+      await onUpdateActivity(updatedActivity);
+      toast.success('Atividade iniciada!');
+    } catch (error) {
+      toast.error('Erro ao iniciar atividade');
+      console.error('Error starting activity:', error);
+    }
   };
 
-  const handleCompleteActivity = (activity: Activity) => {
-    const updatedActivity = { ...activity, status: 'completed' as const };
-    onUpdateActivity(updatedActivity);
-    toast.success('Atividade marcada como concluída!');
+  const handleCompleteActivity = async (activity: Activity) => {
+    try {
+      const updatedActivity: Activity = { ...activity, status: 'completed' as const };
+      await onUpdateActivity(updatedActivity);
+      toast.success('Atividade marcada como concluída!');
+    } catch (error) {
+      toast.error('Erro ao concluir atividade');
+      console.error('Error completing activity:', error);
+    }
   };
 
   const handleEditClick = (activity: Activity) => {
@@ -140,8 +138,14 @@ export default function ActivitiesList({
     setShowEditDialog(true);
   };
 
-  const handleSaveEdit = (updatedActivity: Activity) => {
-    onUpdateActivity(updatedActivity);
+  const handleSaveEdit = async (updatedActivity: Activity) => {
+    try {
+      await onUpdateActivity(updatedActivity);
+      setShowEditDialog(false);
+    } catch (error) {
+      toast.error('Erro ao atualizar atividade');
+      console.error('Error updating activity:', error);
+    }
   };
 
   return (
@@ -186,24 +190,24 @@ export default function ActivitiesList({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-[10px] border border-black/12 p-4">
             <p className="text-[12px] text-black/60 mb-1">Total</p>
-            <p className="text-[24px] font-semibold text-[#0056b9]">{activities.length}</p>
+            <p className="text-[24px] font-semibold text-[#0056b9]">{stats?.total ?? activities.length}</p>
           </div>
           <div className="bg-white rounded-[10px] border border-black/12 p-4">
             <p className="text-[12px] text-black/60 mb-1">Pendentes</p>
             <p className="text-[24px] font-semibold text-blue-600">
-              {activities.filter(a => a.status === 'pending').length}
+              {stats?.pending ?? activities.filter(a => a.status === 'pending').length}
             </p>
           </div>
           <div className="bg-white rounded-[10px] border border-black/12 p-4">
             <p className="text-[12px] text-black/60 mb-1">Em Andamento</p>
             <p className="text-[24px] font-semibold text-purple-600">
-              {activities.filter(a => a.status === 'in-progress').length}
+              {stats?.in_progress ?? activities.filter(a => a.status === 'in_progress').length}
             </p>
           </div>
           <div className="bg-white rounded-[10px] border border-black/12 p-4">
             <p className="text-[12px] text-black/60 mb-1">Concluídas</p>
             <p className="text-[24px] font-semibold text-green-600">
-              {activities.filter(a => a.status === 'completed').length}
+              {stats?.completed ?? activities.filter(a => a.status === 'completed').length}
             </p>
           </div>
         </div>
@@ -234,12 +238,12 @@ export default function ActivitiesList({
               Pendentes
             </Button>
             <Button
-              variant={filter === 'in-progress' ? 'default' : 'outline'}
+              variant={filter === 'in_progress' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilter('in-progress')}
+              onClick={() => setFilter('in_progress')}
               className={cn(
                 "h-9",
-                filter === 'in-progress' && "bg-purple-600 hover:bg-purple-700"
+                filter === 'in_progress' && "bg-purple-600 hover:bg-purple-700"
               )}
             >
               Em Andamento
@@ -324,33 +328,33 @@ export default function ActivitiesList({
                         <Badge variant="secondary" className={difficultyColors[activity.difficulty]}>
                           {difficultyLabels[activity.difficulty]}
                         </Badge>
-                        {activity.studentIds.length > 0 && (
+                        {activity.student_ids && activity.student_ids.length > 0 && (
                           <Badge variant="outline" className="gap-1">
                             <Users className="h-3 w-3" />
-                            {activity.studentIds.length} aluno{activity.studentIds.length > 1 ? 's' : ''}
+                            {activity.student_ids.length} aluno{activity.student_ids.length > 1 ? 's' : ''}
                           </Badge>
                         )}
                       </div>
 
                       {/* Students */}
-                      {activity.studentIds.length > 0 && (
+                      {activity.student_ids && activity.student_ids.length > 0 && (
                         <p className="text-[12px] text-black/60 mb-2">
-                          <span className="font-medium">Alunos:</span> {getStudentNames(activity.studentIds)}
+                          <span className="font-medium">Alunos:</span> {getStudentNames(activity.student_ids)}
                         </p>
                       )}
 
                       {/* Schedule Info */}
                       <div className="flex flex-wrap gap-4 text-[12px] text-black/60">
-                        {activity.scheduledDate && (
+                        {activity.scheduled_date && (
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            <span>{new Date(activity.scheduledDate).toLocaleDateString('pt-BR')}</span>
+                            <span>{new Date(activity.scheduled_date).toLocaleDateString('pt-BR')}</span>
                           </div>
                         )}
-                        {activity.scheduledTime && (
+                        {activity.scheduled_time && (
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>{activity.scheduledTime}</span>
+                            <span>{activity.scheduled_time}</span>
                           </div>
                         )}
                       </div>

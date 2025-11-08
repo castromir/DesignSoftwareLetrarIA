@@ -5,22 +5,13 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import imgAccountMale from 'figma:asset/6fc471d91da85fe4fda398eb3bf23ec06bafe9a5.png';
 import { X } from 'lucide-react';
-
-interface Professional {
-  id: string;
-  name: string;
-  email: string;
-  username: string;
-  role: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
+import type { Professional } from '../types';
 
 interface EditProfessionalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   professional: Professional | null;
-  onSave: (professional: Professional) => void;
+  onSave: (professional: Professional) => void | Promise<void>;
 }
 
 export function EditProfessionalDialog({
@@ -31,32 +22,52 @@ export function EditProfessionalDialog({
 }: EditProfessionalDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     username: '',
-    role: '',
+    function: '',
     password: '',
   });
 
   useEffect(() => {
     if (professional) {
+      const emailUsername = professional.email ? professional.email.split('@')[0] : '';
       setFormData({
-        name: professional.name,
-        username: professional.username,
-        role: professional.role,
+        name: professional.name || '',
+        email: professional.email || '',
+        username: emailUsername,
+        function: professional.function || '',
+        password: '',
+      });
+    } else {
+      setFormData({
+        name: '',
+        email: '',
+        username: '',
+        function: '',
         password: '',
       });
     }
   }, [professional]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (professional) {
-      onSave({
+      const updated: Professional & { username?: string; password?: string } = {
         ...professional,
         name: formData.name,
-        username: formData.username,
-        role: formData.role,
-        email: `${formData.username}@letraria.com`,
-      });
+        email: formData.email,
+        function: formData.function || undefined,
+      };
+      
+      if (formData.username) {
+        updated.username = formData.username;
+      }
+      
+      if (formData.password) {
+        updated.password = formData.password;
+      }
+      
+      await onSave(updated as Professional);
       onOpenChange(false);
     }
   };
@@ -98,6 +109,27 @@ export function EditProfessionalDialog({
                 </div>
               </div>
 
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-email" className="text-[16px] text-[#1e1e1e]">
+                  E-mail
+                </Label>
+                <div className="relative">
+                  <div className="absolute left-[11.9px] top-[8px] w-5 h-5">
+                    <img src={imgAccountMale} alt="" className="w-full h-full object-contain" />
+                  </div>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    className="h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 border-0 focus-visible:ring-2 focus-visible:ring-blue-500"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
               {/* Username */}
               <div className="space-y-2">
                 <Label htmlFor="edit-username" className="text-[16px] text-[#1e1e1e]">
@@ -113,7 +145,6 @@ export function EditProfessionalDialog({
                     className="h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 border-0 focus-visible:ring-2 focus-visible:ring-blue-500"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    required
                   />
                 </div>
               </div>
@@ -135,10 +166,10 @@ export function EditProfessionalDialog({
 
               {/* Função/Cargo */}
               <div className="space-y-2">
-                <Label htmlFor="edit-role" className="text-[14px] text-neutral-950">
+                <Label htmlFor="edit-function" className="text-[14px] text-neutral-950">
                   Função/Cargo
                 </Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <Select value={formData.function} onValueChange={(value) => setFormData({ ...formData, function: value })}>
                   <SelectTrigger className="h-9 bg-[#f3f3f5] rounded-lg border-0 focus:ring-2 focus:ring-blue-500">
                     <SelectValue placeholder="Selecione a função" />
                   </SelectTrigger>

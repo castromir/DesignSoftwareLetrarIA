@@ -9,24 +9,19 @@ import { Calendar as CalendarComponent } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { toast } from 'sonner@2.0.3';
 import { cn } from './ui/utils';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student, ActivityCreate } from '../types';
 
 interface CreateActivityProps {
   onBack: () => void;
   students: Student[];
-  onCreateActivity: (activity: any) => void;
+  onCreateActivity: (activity: ActivityCreate) => Promise<void>;
 }
 
 export default function CreateActivity({ onBack, students, onCreateActivity }: CreateActivityProps) {
   const [activityType, setActivityType] = useState<'reading' | 'writing'>('reading');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState<Date>();
   const [scheduledTime, setScheduledTime] = useState('');
   const [words, setWords] = useState<string[]>(['']);
@@ -46,7 +41,7 @@ export default function CreateActivity({ onBack, students, onCreateActivity }: C
     setWords(newWords);
   };
 
-  const toggleStudent = (studentId: number) => {
+  const toggleStudent = (studentId: string) => {
     setSelectedStudents(prev =>
       prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
@@ -54,7 +49,7 @@ export default function CreateActivity({ onBack, students, onCreateActivity }: C
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -72,23 +67,26 @@ export default function CreateActivity({ onBack, students, onCreateActivity }: C
       return;
     }
 
-    const newActivity = {
-      id: Date.now(),
+    const newActivity: ActivityCreate = {
       type: activityType,
-      title,
-      description,
-      studentIds: selectedStudents,
-      scheduledDate: scheduledDate,
-      scheduledTime: scheduledTime,
-      words: words.filter(w => w.trim()),
-      difficulty,
-      createdAt: new Date(),
-      status: 'pending' as const,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      student_ids: selectedStudents,
+      scheduled_date: scheduledDate ? scheduledDate.toISOString().split('T')[0] : undefined,
+      scheduled_time: scheduledTime || undefined,
+      words: words.filter(w => w.trim()).length > 0 ? words.filter(w => w.trim()) : undefined,
+      difficulty: difficulty,
+      status: 'pending',
     };
 
-    onCreateActivity(newActivity);
-    toast.success('Atividade criada com sucesso!');
-    onBack();
+    try {
+      await onCreateActivity(newActivity);
+      toast.success('Atividade criada com sucesso!');
+      onBack();
+    } catch (error) {
+      toast.error('Erro ao criar atividade. Tente novamente.');
+      console.error('Error creating activity:', error);
+    }
   };
 
   return (
@@ -344,7 +342,7 @@ export default function CreateActivity({ onBack, students, onCreateActivity }: C
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-medium text-black truncate">{student.name}</p>
-                      <p className="text-[12px] text-black/60">{student.age} anos</p>
+                      <p className="text-[12px] text-black/60">{student.age || 0} anos</p>
                     </div>
                   </div>
                 </button>
