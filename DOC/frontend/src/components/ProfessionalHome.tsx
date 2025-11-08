@@ -132,6 +132,7 @@ export function ProfessionalHome({ user, onLogout }: ProfessionalHomeProps) {
     subtitle: string;
     content: string;
   } | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const textLibrary = [
     {
@@ -433,9 +434,13 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
 
   const handleDeleteStudent = async (studentId: string) => {
     try {
-      await deleteStudent(studentId);
+      const ok = await deleteStudent(studentId);
       if (selectedStudent?.id === studentId) {
         setSelectedStudent(null);
+      }
+      if (ok) {
+        setSuccessMessage("Aluno removido com sucesso");
+        setTimeout(() => setSuccessMessage(null), 3000);
       }
     } catch (error) {
       console.error("Error deleting student:", error);
@@ -479,9 +484,13 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   const handleConfirmDeleteFromList = async () => {
     if (studentToDelete?.id) {
       try {
-        await deleteStudent(studentToDelete.id);
+        const ok = await deleteStudent(studentToDelete.id);
         setStudentToDelete(null);
         setShowDeleteAlert(false);
+        if (ok) {
+          setSuccessMessage("Aluno removido com sucesso");
+          setTimeout(() => setSuccessMessage(null), 3000);
+        }
       } catch (error) {
         console.error("Error deleting student:", error);
       }
@@ -854,6 +863,14 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
           </Alert>
         )}
 
+        {successMessage && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <AlertDescription className="text-green-800">
+              {successMessage}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Page Title - Desktop */}
         <h2 className="hidden lg:block text-[20px] font-semibold text-black mb-6">
           Visão geral
@@ -1184,7 +1201,9 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
           {/* Students List */}
           <div
             className="grid gap-4"
-            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            }}
           >
             {filteredStudents.map((student) => (
               <div

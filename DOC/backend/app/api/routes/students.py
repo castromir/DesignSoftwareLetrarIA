@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+import uuid
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.database import get_db
-from app.services.student_service import StudentService
+from app.models.user import User
 from app.schemas.student import (
     StudentCreate,
-    StudentUpdate,
-    StudentResponse,
     StudentListResponse,
+    StudentResponse,
+    StudentUpdate,
 )
+from app.services.student_service import StudentService
 from app.utils.dependencies import get_current_active_user
-from app.models.user import User
-from typing import Optional
-import uuid
 
 router = APIRouter(prefix="/students", tags=["alunos"])
 
@@ -29,12 +31,14 @@ async def create_student(
 
 @router.get("/", response_model=StudentListResponse)
 async def list_students(
-    professional_id: Optional[str] = Query(None, description="Filtrar por profissional"),
+    professional_id: Optional[str] = Query(
+        None, description="Filtrar por profissional"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
     service = StudentService(db)
-    
+
     # Se for professional, só pode ver seus próprios alunos
     # Se for admin, pode ver todos ou filtrar por professional_id
     filter_professional_id = None
@@ -46,9 +50,9 @@ async def list_students(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="ID do profissional inválido"
+                detail="ID do profissional inválido",
             )
-    
+
     result = await service.get_all_students(filter_professional_id)
     return result
 
@@ -63,20 +67,21 @@ async def get_student(
         student_uuid = uuid.UUID(student_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="ID do aluno inválido"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="ID do aluno inválido"
         )
-    
+
     service = StudentService(db)
     student = await service.get_student_by_id(student_uuid)
-    
+
     # Se for professional, só pode ver seus próprios alunos
-    if current_user.role.value == "professional" and str(student.professional_id) != str(current_user.id):
+    if current_user.role.value == "professional" and str(
+        student.professional_id
+    ) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não tem permissão para acessar este aluno"
+            detail="Você não tem permissão para acessar este aluno",
         )
-    
+
     return student
 
 
@@ -91,25 +96,26 @@ async def update_student(
         student_uuid = uuid.UUID(student_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="ID do aluno inválido"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="ID do aluno inválido"
         )
-    
+
     service = StudentService(db)
-    
+
     # Verificar se o aluno existe e se o usuário tem permissão
     existing_student = await service.get_student_by_id(student_uuid)
-    if current_user.role.value == "professional" and str(existing_student.professional_id) != str(current_user.id):
+    if current_user.role.value == "professional" and str(
+        existing_student.professional_id
+    ) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não tem permissão para editar este aluno"
+            detail="Você não tem permissão para editar este aluno",
         )
-    
+
     student = await service.update_student(student_uuid, data, current_user.id)
     return student
 
 
-@router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{student_id}", status_code=status.HTTP_200_OK)
 async def delete_student(
     student_id: str,
     db: AsyncSession = Depends(get_db),
@@ -119,20 +125,20 @@ async def delete_student(
         student_uuid = uuid.UUID(student_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="ID do aluno inválido"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="ID do aluno inválido"
         )
-    
+
     service = StudentService(db)
-    
+
     # Verificar se o aluno existe e se o usuário tem permissão
     existing_student = await service.get_student_by_id(student_uuid)
-    if current_user.role.value == "professional" and str(existing_student.professional_id) != str(current_user.id):
+    if current_user.role.value == "professional" and str(
+        existing_student.professional_id
+    ) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não tem permissão para excluir este aluno"
+            detail="Você não tem permissão para excluir este aluno",
         )
-    
-    await service.delete_student(student_uuid)
-    return None
 
+    await service.delete_student(student_uuid)
+    return {"message": "Aluno removido com sucesso"}

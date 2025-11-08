@@ -18,7 +18,7 @@ class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public data?: unknown
+    public data?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -70,16 +70,13 @@ export const getAuthData = () => {
 };
 
 export const api = {
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = getAuthToken();
     const url = `${API_BASE_URL}${endpoint}`;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...(options.headers as Record<string, string> || {}),
+      ...((options.headers as Record<string, string>) || {}),
     };
 
     if (token) {
@@ -98,7 +95,7 @@ export const api = {
         throw new ApiError(
           data.detail || data.message || "Erro na requisição",
           response.status,
-          data
+          data,
         );
       }
 
@@ -109,12 +106,15 @@ export const api = {
       }
       throw new ApiError(
         error instanceof Error ? error.message : "Erro desconhecido",
-        0
+        0,
       );
     }
   },
 
-  get<T>(endpoint: string, options?: { params?: Record<string, string> }): Promise<T> {
+  get<T>(
+    endpoint: string,
+    options?: { params?: Record<string, string> },
+  ): Promise<T> {
     let url = endpoint;
     if (options?.params) {
       const queryString = new URLSearchParams(options.params).toString();
@@ -148,13 +148,17 @@ export const api = {
     return this.request<T>(endpoint, { method: "DELETE" });
   },
 
-  async uploadFile<T>(endpoint: string, file: File, additionalData?: Record<string, string>): Promise<T> {
+  async uploadFile<T>(
+    endpoint: string,
+    file: File,
+    additionalData?: Record<string, string>,
+  ): Promise<T> {
     const token = getAuthToken();
     const url = `${API_BASE_URL}${endpoint}`;
 
     const formData = new FormData();
     formData.append("audio", file);
-    
+
     if (additionalData) {
       Object.entries(additionalData).forEach(([key, value]) => {
         formData.append(key, value);
@@ -179,7 +183,7 @@ export const api = {
         throw new ApiError(
           data.detail || data.message || "Erro na requisição",
           response.status,
-          data
+          data,
         );
       }
 
@@ -190,7 +194,7 @@ export const api = {
       }
       throw new ApiError(
         error instanceof Error ? error.message : "Erro desconhecido",
-        0
+        0,
       );
     }
   },
@@ -254,7 +258,9 @@ export const professionalsApi = {
 export const studentsApi = {
   async list(professionalId?: string) {
     const params = professionalId ? { professional_id: professionalId } : {};
-    const queryString = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
+    const queryString = params
+      ? `?${new URLSearchParams(params as Record<string, string>).toString()}`
+      : "";
     return api.get<StudentListResponse>(`/students${queryString}`);
   },
 
@@ -271,7 +277,7 @@ export const studentsApi = {
   },
 
   async delete(id: string) {
-    return api.delete<void>(`/students/${id}`);
+    return api.delete<{ message: string }>(`/students/${id}`);
   },
 };
 
@@ -280,9 +286,10 @@ export const activitiesApi = {
     const params: Record<string, string> = {};
     if (professionalId) params.professional_id = professionalId;
     if (status) params.status = status;
-    const queryString = Object.keys(params).length > 0
-      ? `?${new URLSearchParams(params).toString()}`
-      : "";
+    const queryString =
+      Object.keys(params).length > 0
+        ? `?${new URLSearchParams(params).toString()}`
+        : "";
     return api.get<ActivityListResponse>(`/activities${queryString}`);
   },
 
@@ -311,10 +318,16 @@ export interface TranscriptionResponse {
 }
 
 export const transcriptionApi = {
-  async transcribe(audioFile: File, language: string = "pt"): Promise<TranscriptionResponse> {
-    return api.uploadFile<TranscriptionResponse>("/transcription/transcribe", audioFile, {
-      language,
-    });
+  async transcribe(
+    audioFile: File,
+    language: string = "pt",
+  ): Promise<TranscriptionResponse> {
+    return api.uploadFile<TranscriptionResponse>(
+      "/transcription/transcribe",
+      audioFile,
+      {
+        language,
+      },
+    );
   },
 };
-
