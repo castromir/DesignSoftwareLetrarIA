@@ -244,7 +244,15 @@ Vamos seguir um exemplo de **Login** para entender o fluxo:
 
 ### Usando Docker (Recomendado)
 
-Ver instruções completas no README.md principal do projeto.
+1. Subir o banco de dados PostgreSQL
+    docker run --name letraria-db -e POSTGRES_USER=letrarIA -e POSTGRES_PASSWORD=123 -e POSTGRES_DB=letraria_db -p 55432:5432 -d postgres
+
+    Para verificar se o container está rodando:
+        docker ps
+
+2. Após o container estar em execução, habilite a extensão pg_trgm (necessária para buscas mais avançadas):
+    docker exec -it letraria-db psql -U letrarIA -d letraria_db -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+
 
 ### Desenvolvimento Local
 
