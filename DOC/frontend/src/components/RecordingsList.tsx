@@ -3,12 +3,7 @@ import { useState, useEffect } from "react";
 import svgPaths from "../imports/svg-gg4j504qmb";
 import ReadingDetails from "./ReadingDetails";
 import TextAnalysis from "./TextAnalysis";
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from "../types";
 
 interface Recording {
   id: number;

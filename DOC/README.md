@@ -17,7 +17,7 @@ Grupo 2 : https://www.figma.com/design/HD1vK6dSyNRxFuPE80wTmp/Prot%C3%B3tipos-de
 
 ### 1. Clonar o Repositório
 
-```bash
+```DOC/README.md#L1-20
 git clone git@github.com:castromir/DesignSoftwareLetrarIA.git
 cd DesignSoftwareLetrarIA/DOC
 ```
@@ -26,7 +26,7 @@ cd DesignSoftwareLetrarIA/DOC
 
 Subir todos os serviços (banco de dados, backend e frontend):
 
-```bash
+```DOC/README.md#L21-40
 docker-compose -f docker-compose.dev.yml up -d
 ```
 
@@ -35,21 +35,50 @@ Este comando irá:
 - Criar e iniciar o container do Backend (FastAPI) na porta **8888**
 - Criar e iniciar o container do Frontend (React/Vite) na porta **5174**
 
+### 2.1 (Importante) Criar a extensão `pg_trgm` no PostgreSQL
+
+Algumas funcionalidades (como buscas por similaridade ou índices trigram) exigem a extensão `pg_trgm`. Execute este passo após o banco subir e antes de aplicar migrations que dependam da extensão.
+
+Executar no container do banco (recomendado):
+
+```DOC/README.md#L41-60
+docker exec -it letraria-db-dev-new psql -U letraria_user -d letraria_db -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+```
+
+Observações:
+- O nome do container do banco no `docker-compose.dev.yml` é `letraria-db-dev-new`.
+- Se preferir executar sem tty, remova `-it`.
+- Se você receber erro de permissão, verifique se está executando como um superuser do PostgreSQL (a imagem oficial do Postgres normalmente já permite isso através do usuário `postgres` ou do usuário criado via env vars).
+
 ### 3. Executar as Migrations do Banco de Dados
 
 Aplicar as migrations para criar as tabelas no banco:
 
-```bash
+```DOC/README.md#L61-80
 docker exec letraria-backend-dev alembic upgrade head
 ```
 
 Este comando irá criar todas as tabelas definidas nos models SQLAlchemy.
 
+### 3.1 Gerar uma nova migration (quando necessário)
+
+Se você alterou os models ou está inicializando o projeto sem migrações, gere uma migration com:
+
+```DOC/README.md#L81-100
+docker exec letraria-backend-dev alembic revision --autogenerate -m "Create all tables"
+```
+
+Depois aplique:
+
+```DOC/README.md#L101-120
+docker exec letraria-backend-dev alembic upgrade head
+```
+
 ### 4. Popular o Banco com Dados Iniciais (Seeders)
 
 Executar o seed para criar usuários iniciais:
 
-```bash
+```DOC/README.md#L121-140
 docker exec letraria-backend-dev python /app/run_seed.py
 ```
 
@@ -62,7 +91,7 @@ Este comando criará:
 
 Verificar o status dos containers:
 
-```bash
+```DOC/README.md#L141-160
 docker-compose -f docker-compose.dev.yml ps
 ```
 
@@ -104,12 +133,12 @@ Após executar os seeders, os seguintes usuários estarão disponíveis para log
 O projeto possui seeders para popular o banco de dados com dados iniciais:
 
 ### Executar Todos os Seeders
-```bash
+```DOC/README.md#L161-180
 docker exec letraria-backend-dev python /app/run_seed.py
 ```
 
 ### Executar Seeders Individuais
-```bash
+```DOC/README.md#L181-200
 # Apenas usuários e profissionais
 docker exec letraria-backend-dev python -c "import asyncio; from seeds.seed_users import seed_users; asyncio.run(seed_users())"
 
@@ -224,19 +253,19 @@ O seeder de atividades cria automaticamente 6 atividades para cada profissional 
 
 ### Parar os Serviços
 
-```bash
+```DOC/README.md#L201-220
 docker-compose -f docker-compose.dev.yml down
 ```
 
 ### Parar e Remover Volumes (apaga dados do banco)
 
-```bash
+```DOC/README.md#L221-240
 docker-compose -f docker-compose.dev.yml down -v
 ```
 
 ### Ver Logs dos Serviços
 
-```bash
+```DOC/README.md#L241-260
 # Logs de todos os serviços
 docker-compose -f docker-compose.dev.yml logs -f
 
@@ -252,7 +281,7 @@ docker logs letraria-db-dev-new -f
 
 ### Reiniciar um Serviço Específico
 
-```bash
+```DOC/README.md#L261-280
 docker-compose -f docker-compose.dev.yml restart backend
 docker-compose -f docker-compose.dev.yml restart frontend
 docker-compose -f docker-compose.dev.yml restart db
@@ -260,13 +289,13 @@ docker-compose -f docker-compose.dev.yml restart db
 
 ### Criar Nova Migration
 
-```bash
+```DOC/README.md#L281-300
 docker exec letraria-backend-dev alembic revision --autogenerate -m "Nome da migration"
 ```
 
 ### Verificar Estado das Migrations
 
-```bash
+```DOC/README.md#L301-320
 docker exec letraria-backend-dev alembic current
 docker exec letraria-backend-dev alembic history
 ```
@@ -275,7 +304,7 @@ docker exec letraria-backend-dev alembic history
 
 Para reexecutar o seeder, primeiro é necessário limpar os usuários do banco:
 
-```bash
+```DOC/README.md#L321-340
 # Conectar ao banco e remover usuários
 docker exec -it letraria-db-dev-new psql -U letraria_user -d letraria_db -c "DELETE FROM users;"
 
@@ -294,3 +323,13 @@ docker exec letraria-backend-dev python /app/run_seed.py
 - As alterações no código do backend e frontend são aplicadas automaticamente devido ao hot reload configurado
 - Os dados do banco são persistidos em volumes Docker e não serão perdidos ao reiniciar os containers
 - Para limpar completamente e recriar tudo, use `docker-compose -f docker-compose.dev.yml down -v` e depois `docker-compose -f docker-compose.dev.yml up -d`
+
+## Troubleshooting Rápido
+
+- Extensão `pg_trgm` não existe: execute o comando de criação da extensão no container do banco conforme indicado na seção 2.1.
+- `alembic revision --autogenerate` não detecta mudanças: confirme que os models são importados e registrados no `alembic/env.py`, e que a `DATABASE_URL` do container backend aponta para o serviço do banco.
+- Permissão negada no Postgres: verifique usuário e privilégios; usar o usuário criado pelas variáveis de ambiente do `docker-compose` (ou `postgres` se necessário).
+- Se o container do banco não subir, verifique volumes e logs:
+```DOC/README.md#L341-360
+docker logs letraria-db-dev-new -f
+```

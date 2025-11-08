@@ -2,12 +2,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
 import svgPaths from '../imports/svg-p7j9lqrllg';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from 'recharts';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from '../types';
 
 interface StudentTrackingProps {
   student: Student | null;

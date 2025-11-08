@@ -9,12 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from '../types';
 
 interface StudentDiagnosticProps {
   student: Student;

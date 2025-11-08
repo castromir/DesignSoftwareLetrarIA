@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import UserRole
 from app.repositories.professional_repository import ProfessionalRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.student_repository import StudentRepository
 from app.schemas.professional import ProfessionalCreate, ProfessionalUpdate
 from app.utils.password import hash_password
 
@@ -145,6 +146,20 @@ class ProfessionalService:
         }
 
     async def delete_professional(self, professional_id: str) -> bool:
+        # Before removing the professional, soft-delete any students linked to them
+        # to avoid foreign key constraint errors on databases that don't have
+        # ON DELETE CASCADE applied (migration state may vary between environments).
+        student_repo = StudentRepository(self.user_repository.session)
+        try:
+            # get all students for this professional and soft-delete them
+            prof_uuid = uuid.UUID(professional_id)
+            students = await student_repo.get_all(prof_uuid)
+            for s in students:
+                await student_repo.delete(s.id)
+        except Exception:
+            # if there is any unexpected issue, continue and attempt to delete professional
+            pass
+
         success = await self.professional_repository.delete(uuid.UUID(professional_id))
         if not success:
             raise HTTPException(

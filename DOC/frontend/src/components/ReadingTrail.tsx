@@ -9,12 +9,7 @@ import {
   PopoverTrigger,
 } from "./ui/popover";
 import { Checkbox } from "./ui/checkbox";
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from "../types";
 
 interface ReadingTrailProps {
   student: Student | null;
@@ -281,9 +276,10 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
                       <Checkbox
                         id="filter-read"
                         checked={filterRead}
-                        onCheckedChange={(checked) => {
-                          setFilterRead(checked as boolean);
-                          if (checked) setFilterUnread(false);
+                          onCheckedChange={(checked: boolean | string) => {
+                            const value = typeof checked === 'boolean' ? checked : checked === 'true';
+                            setFilterRead(value);
+                            if (value) setFilterUnread(false);
                         }}
                       />
                       <label
@@ -297,9 +293,10 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
                       <Checkbox
                         id="filter-unread"
                         checked={filterUnread}
-                        onCheckedChange={(checked) => {
-                          setFilterUnread(checked as boolean);
-                          if (checked) setFilterRead(false);
+                          onCheckedChange={(checked: boolean | string) => {
+                            const value = typeof checked === 'boolean' ? checked : checked === 'true';
+                            setFilterUnread(value);
+                            if (value) setFilterRead(false);
                         }}
                       />
                       <label

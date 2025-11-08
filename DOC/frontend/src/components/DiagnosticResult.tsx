@@ -35,11 +35,7 @@ import {
   Line,
 } from 'recharts';
 
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from '../types';
 
 interface DiagnosticResultProps {
   student: Student;

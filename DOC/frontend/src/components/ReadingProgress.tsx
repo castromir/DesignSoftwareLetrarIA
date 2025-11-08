@@ -1,11 +1,6 @@
 import { ChevronLeft, Mic } from 'lucide-react';
 import svgPaths from '../imports/svg-ey2z87ufvs';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from '../types';
 
 interface Story {
   id: number;

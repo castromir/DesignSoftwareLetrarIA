@@ -23,16 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from '../types';
 
 interface DiagnosticRecord {
   id: number;
-  studentId: number;
+    studentId: string;
   studentName: string;
   studentAge: number;
   date: string;
@@ -56,48 +51,18 @@ export default function DiagnosticsList({ onBack, students }: DiagnosticsListPro
   const [showStudentSelector, setShowStudentSelector] = useState(false);
 
   // Mock data de diagnósticos
-  const diagnostics: DiagnosticRecord[] = [
-    {
-      id: 1,
-      studentId: 2,
-      studentName: 'João Augusto',
-      studentAge: 8,
-      date: '2025-10-28',
-      score: 78,
-      trend: 'up',
+  const diagnostics: DiagnosticRecord[] = students.slice(0, 4).map(
+    (s, idx): DiagnosticRecord => ({
+      id: idx + 1,
+      studentId: s.id,
+      studentName: s.name,
+      studentAge: s.age ?? 0,
+      date: new Date(Date.now() - idx * 86400000).toISOString().split('T')[0],
+      score: 85 - idx * 7,
+      trend: idx === 0 || idx === 1 ? 'up' : idx === 2 ? 'stable' : 'down',
       status: 'completed',
-    },
-    {
-      id: 2,
-      studentId: 1,
-      studentName: 'Ana Clara',
-      studentAge: 7,
-      date: '2025-10-25',
-      score: 85,
-      trend: 'up',
-      status: 'completed',
-    },
-    {
-      id: 3,
-      studentId: 3,
-      studentName: 'Beatriz Lima',
-      studentAge: 9,
-      date: '2025-10-20',
-      score: 72,
-      trend: 'stable',
-      status: 'completed',
-    },
-    {
-      id: 4,
-      studentId: 4,
-      studentName: 'Carlos Silva',
-      studentAge: 8,
-      date: '2025-10-15',
-      score: 65,
-      trend: 'down',
-      status: 'completed',
-    },
-  ];
+    })
+  );
 
   const filteredDiagnostics = diagnostics.filter((diag) => {
     const matchesSearch = diag.studentName
@@ -109,12 +74,11 @@ export default function DiagnosticsList({ onBack, students }: DiagnosticsListPro
 
   const handleViewDiagnostic = (diagnostic: DiagnosticRecord) => {
     setSelectedDiagnostic(diagnostic);
-    setSelectedStudent({
-      id: diagnostic.studentId,
-      name: diagnostic.studentName,
-      age: diagnostic.studentAge,
-    });
-    setShowResult(true);
+    const fullStudent = students.find(s => s.id === diagnostic.studentId);
+    if (fullStudent) {
+      setSelectedStudent(fullStudent);
+      setShowResult(true);
+    }
   };
 
   const handleNewDiagnostic = () => {
@@ -122,7 +86,7 @@ export default function DiagnosticsList({ onBack, students }: DiagnosticsListPro
   };
 
   const handleSelectStudent = (studentId: string) => {
-    const student = students.find((s) => s.id === parseInt(studentId));
+    const student = students.find((s) => s.id === studentId);
     if (student) {
       setSelectedStudent(student);
       setShowStudentSelector(false);
@@ -181,7 +145,7 @@ export default function DiagnosticsList({ onBack, students }: DiagnosticsListPro
                   </SelectTrigger>
                   <SelectContent>
                     {students.map((student) => (
-                      <SelectItem key={student.id} value={student.id.toString()}>
+                      <SelectItem key={student.id} value={student.id}>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-[#0056b9]" />
                           <span>{student.name}</span>

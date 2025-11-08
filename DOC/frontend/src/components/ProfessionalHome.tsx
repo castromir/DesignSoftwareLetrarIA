@@ -1182,11 +1182,14 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
           </div>
 
           {/* Students List */}
-          <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+          <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
+          >
             {filteredStudents.map((student) => (
               <div
                 key={student.id}
-                className="bg-white rounded-[10px] border border-black/12 p-3.5 flex items-center gap-3"
+                className="w-full bg-white rounded-[10px] border border-black/12 p-3.5 flex items-center gap-3"
               >
                 {/* Avatar */}
                 <div className="flex-shrink-0">

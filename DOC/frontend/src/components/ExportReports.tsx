@@ -8,17 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from '../types';
 
 interface ExportReportsProps {
   students: Student[];
-  selectedStudentId: number;
-  onStudentChange: (studentId: number) => void;
+  selectedStudentId: string;
+  onStudentChange: (studentId: string) => void;
   onBack: () => void;
 }
 
@@ -82,8 +77,8 @@ export default function ExportReports({ students, selectedStudentId, onStudentCh
             Selecione o aluno:
           </h2>
           <Select
-            value={selectedStudentId.toString()}
-            onValueChange={(value) => onStudentChange(Number(value))}
+            value={selectedStudentId}
+            onValueChange={(value: string) => onStudentChange(value)}
           >
             <SelectTrigger className="w-full bg-white rounded-[10px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] h-auto pt-8 pb-8 border-0">
               <div className="flex items-center gap-3">
@@ -97,7 +92,7 @@ export default function ExportReports({ students, selectedStudentId, onStudentCh
             </SelectTrigger>
             <SelectContent className="max-h-[300px] overflow-auto py-2">
               {students.map((student) => (
-                <SelectItem key={student.id} value={student.id.toString()}>
+                <SelectItem key={student.id} value={student.id}>
                   <div className="flex items-center gap-3">
                     <StudentAvatar />
                     <span className="text-[16px] font-semibold text-black">

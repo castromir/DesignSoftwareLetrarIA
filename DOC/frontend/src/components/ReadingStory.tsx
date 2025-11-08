@@ -2,14 +2,9 @@ import { ChevronLeft, Mic, MoreVertical, Printer } from 'lucide-react';
 import { useState } from 'react';
 import svgPaths from '../imports/svg-7k5czerodv';
 import { img } from '../imports/svg-a81u4';
-import { toast } from 'sonner@2.0.3';
-import * as DialogPrimitive from '@radix-ui/react-dialog@1.1.6';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import { toast } from 'sonner';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import type { Student } from '../types';
 
 interface ReadingStoryProps {
   student: Student | null;
