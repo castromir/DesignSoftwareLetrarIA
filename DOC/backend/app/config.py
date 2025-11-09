@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     
     whisper_model_size: str = "base"
     openai_api_key: str | None = None  # Mantido para compatibilidade, mas não usado mais
+    google_genai_api_key: str | None = None
+    google_genai_model: str = "gemini-1.5-flash"
+    google_genai_location: str | None = None
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -37,6 +40,11 @@ class Settings(BaseSettings):
                     self.cors_origins = [origin.strip() for origin in cors_origins_env.split(",")]
                 else:
                     self.cors_origins = []
+        if not self.cors_origins and self.environment.lower() == "development":
+            self.cors_origins = [
+                "http://localhost:5174",
+                "http://127.0.0.1:5174",
+            ]
 
 
 settings = Settings()

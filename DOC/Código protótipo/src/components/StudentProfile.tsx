@@ -1,5 +1,5 @@
+import React, { useState } from 'react';
 import { ChevronRight, X } from 'lucide-react';
-import { useState } from 'react';
 import svgPaths from '../imports/svg-ud1jof4hiy';
 import * as DialogPrimitive from '@radix-ui/react-dialog@1.1.6';
 import {
@@ -13,6 +13,7 @@ import {
 import { cn } from './ui/utils';
 import EditStudentDialog from './EditStudentDialog';
 import type { Student } from '../types';
+import AiInsightsPanel from "./AiInsightsPanel";
 
 interface StudentProfileProps {
   student: Student | null;
@@ -22,6 +23,7 @@ interface StudentProfileProps {
   onViewProgress?: () => void;
   onViewTracking?: () => void;
   onViewDiagnostic?: () => void;
+  onViewStudentActivities?: () => void;
   onEditStudent?: (student: Student) => void | Promise<void>;
   onDeleteStudent?: (studentId: string) => void | Promise<void>;
   onExportReports?: () => void;
@@ -69,6 +71,7 @@ function ProfileContent({
   onViewProgress,
   onViewTracking,
   onViewDiagnostic,
+  onViewStudentActivities,
   onExportReports,
   onEditClick,
   onDeleteClick
@@ -78,6 +81,7 @@ function ProfileContent({
   onViewProgress?: () => void;
   onViewTracking?: () => void;
   onViewDiagnostic?: () => void;
+  onViewStudentActivities?: () => void;
   onExportReports?: () => void;
   onEditClick?: () => void;
   onDeleteClick?: () => void;
@@ -112,6 +116,7 @@ function ProfileContent({
         <ProfileMenuItem label="Ver trilha de leitura" onClick={onViewTrail} />
         <ProfileMenuItem label="Visualizar Progresso de leitura" onClick={onViewProgress} />
         <ProfileMenuItem label="Visualizar Rastreamento de progresso" onClick={onViewTracking} />
+        <ProfileMenuItem label="Atividades do aluno" onClick={onViewStudentActivities} />
         <ProfileMenuItem label="Ver Relatório de Diagnóstico" onClick={onViewDiagnostic} />
         <ProfileMenuItem label="Exportar informações" onClick={onExportReports} />
 
@@ -120,6 +125,12 @@ function ProfileContent({
 
         <ProfileMenuItem label="Editar informações do Perfil" onClick={onEditClick} />
         <ProfileMenuItem label="Deletar Perfil" danger onClick={onDeleteClick} />
+
+        {student.id && (
+          <div className="mt-6">
+            <AiInsightsPanel studentId={student.id} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -133,6 +144,7 @@ export default function StudentProfile({
   onViewProgress,
   onViewTracking,
   onViewDiagnostic,
+  onViewStudentActivities,
   onEditStudent,
   onDeleteStudent,
   onExportReports
@@ -152,6 +164,13 @@ export default function StudentProfile({
     onOpenChange(false);
     if (onExportReports) {
       onExportReports();
+    }
+  };
+
+  const handleStudentActivities = () => {
+    onOpenChange(false);
+    if (onViewStudentActivities) {
+      onViewStudentActivities();
     }
   };
 
@@ -204,6 +223,7 @@ export default function StudentProfile({
                 onViewProgress={onViewProgress}
                 onViewTracking={onViewTracking}
                 onViewDiagnostic={onViewDiagnostic}
+                onViewStudentActivities={handleStudentActivities}
                 onExportReports={handleExport}
                 onEditClick={handleEdit}
                 onDeleteClick={handleDelete}

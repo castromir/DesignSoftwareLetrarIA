@@ -2,7 +2,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.config import settings
-from app.api.routes import auth, professionals, students, activities, transcription, text_library, trails, recording
+from app.api.routes import (
+    auth,
+    professionals,
+    students,
+    activities,
+    transcription,
+    text_library,
+    trails,
+    recording,
+    ai_insights,
+    diagnostics,
+    reports,
+    student_activities,
+)
 
 app = FastAPI(
     title="Letrar IA API",
@@ -26,6 +39,10 @@ app.include_router(transcription.router)
 app.include_router(text_library.router)
 app.include_router(trails.router)
 app.include_router(recording.router)
+app.include_router(ai_insights.router)
+app.include_router(diagnostics.router)
+app.include_router(reports.router)
+app.include_router(student_activities.router)
 
 # Servir arquivos estáticos de uploads
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

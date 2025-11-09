@@ -39,7 +39,10 @@ class RecordingRepository:
     async def get_by_id(self, recording_id: uuid.UUID) -> Optional[Recording]:
         result = await self.session.execute(
             select(Recording)
-            .options(selectinload(Recording.analysis))
+            .options(
+                selectinload(Recording.analysis),
+                selectinload(Recording.story),
+            )
             .where(Recording.id == recording_id)
         )
         return result.scalar_one_or_none()
@@ -50,7 +53,10 @@ class RecordingRepository:
         story_id: Optional[uuid.UUID] = None,
         status: Optional[RecordingStatus] = None,
     ) -> List[Recording]:
-        query = select(Recording).options(selectinload(Recording.analysis))
+        query = select(Recording).options(
+            selectinload(Recording.analysis),
+            selectinload(Recording.story),
+        )
         
         conditions = []
         

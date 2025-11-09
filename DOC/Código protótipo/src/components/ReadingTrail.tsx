@@ -1,5 +1,5 @@
 import { ChevronLeft } from "lucide-react";
-import { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import svgPaths from "../imports/svg-zrbw3wzc3o";
 import ReadingStory from "./ReadingStory";
 import { cn } from "./ui/utils";
@@ -9,11 +9,13 @@ import {
   PopoverTrigger,
 } from "./ui/popover";
 import { Checkbox } from "./ui/checkbox";
+import { useTrails } from "../hooks/useTrails";
+import type { TrailStory, Trail } from "../types";
 
 interface Student {
-  id: number;
+  id: number | string;
   name: string;
-  age: number;
+  age?: number;
 }
 
 interface ReadingTrailProps {
@@ -23,7 +25,7 @@ interface ReadingTrailProps {
 }
 
 interface Story {
-  id: number;
+  id: string;
   title: string;
   description: string;
   subtitle: string;
@@ -125,78 +127,102 @@ export default function ReadingTrail({
     useState<Story | null>(null);
   const [filterRead, setFilterRead] = useState(false);
   const [filterUnread, setFilterUnread] = useState(false);
+  const [completedStoryIds, setCompletedStoryIds] = useState<Set<string>>(new Set());
+  const [selectedTrailId, setSelectedTrailId] = useState<string | null>(null);
+  const [hasTriedFallback, setHasTriedFallback] = useState(false);
+
+  const { trails, isLoading, error, fetchTrails } = useTrails();
+  const [selectedTrailData, setSelectedTrailData] = useState<Trail | null>(null);
+
+  useEffect(() => {
+    const loadTrails = async () => {
+      try {
+        // Reset fallback flag when student changes
+        setHasTriedFallback(false);
+        
+        // First try to get default trails
+        const params: any = {};
+        if (student?.age) {
+          params.age_range_min = student.age;
+          params.age_range_max = student.age;
+        }
+        params.is_default = true;
+        
+        await fetchTrails(params);
+      } catch (error) {
+        console.error("Error loading trails:", error);
+      }
+    };
+    
+    loadTrails();
+  }, [student?.age, fetchTrails]);
+
+  useEffect(() => {
+    if (!isLoading && trails.length === 0 && !error && !hasTriedFallback) {
+      setHasTriedFallback(true);
+      fetchTrails({
+        is_default: true,
+      });
+    }
+  }, [isLoading, trails.length, error, hasTriedFallback, fetchTrails]);
+
+  useEffect(() => {
+    if (trails.length > 0) {
+      if (!selectedTrailId) {
+        const defaultTrail = trails.find(t => t.is_default) || trails[0];
+        if (defaultTrail) {
+          setSelectedTrailId(defaultTrail.id);
+          setSelectedTrailData(defaultTrail);
+        }
+      } else {
+        const trail = trails.find(t => t.id === selectedTrailId);
+        if (trail) {
+          if (!selectedTrailData || 
+              selectedTrailData.id !== trail.id ||
+              selectedTrailData.stories.length !== trail.stories.length) {
+            setSelectedTrailData(trail);
+          }
+        }
+      }
+    }
+  }, [trails, selectedTrailId, selectedTrailData]);
+
+  const stories: Story[] = useMemo(() => {
+    if (!selectedTrailData) {
+      return [];
+    }
+    
+    if (!selectedTrailData.stories || selectedTrailData.stories.length === 0) {
+      return [];
+    }
+    
+    return selectedTrailData.stories
+      .sort((a, b) => a.order_position - b.order_position)
+      .map((story: TrailStory) => {
+        const description = story.content.length > 100 
+          ? story.content.substring(0, 100) + "..." 
+          : story.content;
+        
+        const lettersFocus = story.letters_focus && story.letters_focus.length > 0
+          ? story.letters_focus.join(", ")
+          : "";
+        
+        const subtitle = lettersFocus 
+          ? `Letras trabalhadas: ${lettersFocus}`
+          : story.subtitle || "";
+
+        return {
+          id: story.id,
+          title: story.title,
+          description,
+          subtitle,
+          content: story.content,
+          status: completedStoryIds.has(story.id) ? "completed" : "pending",
+        };
+      });
+  }, [selectedTrailData, completedStoryIds]);
 
   if (!student) return null;
-
-  // Sample stories data
-  const stories: Story[] = [
-    {
-      id: 1,
-      title: "Parte 1",
-      description: "O rato roeu a ropa do rei de roma...",
-      subtitle: "Letras trabalhadas: R",
-      content:
-        "O rato roeu a ropa do rei de roma. Era um rato muito esperto que vivia no castelo real. Todos os dias ele procurava por pedaços de queijo e pão. O rei ficava muito bravo com o rato, mas nunca conseguia pegá-lo.",
-      status: "completed",
-    },
-    {
-      id: 2,
-      title: "História curta",
-      description:
-        "O rio que corta a cidade sempre esteve presente...",
-      subtitle: "Letras trabalhadas: R e L",
-      content: `O rio que corta a cidade sempre esteve presente na vida das pessoas.
-Suas margens já foram locais de encontro, de trabalho e de descanso.
-Nas manhãs, é comum observar remadores, caminhantes e estudantes atravessando as pontes.
-À noite, as luzes dos prédios refletem na água e criam um cenário que mistura movimento e tranquilidade.
-Ler sobre o rio é também lembrar como a natureza e a rotina urbana convivem lado a lado.
-
-Ao longo do dia, o rio recebe diferentes visitantes. Alguns jogam sementes para os patos, outros apenas se sentam à beira da água para descansar ou conversar. É um espaço que mistura silêncio e movimento, onde cada pessoa encontra seu próprio ritmo.
-As árvores que margeiam o rio oferecem sombra e refúgio, e em algumas épocas do ano florescem, colorindo a paisagem e atraindo pássaros que cantam sobre a água.
-
-Além da beleza, o rio carrega histórias antigas. Antigamente, suas águas eram usadas para transporte e pequenas embarcações cruzavam suas margens carregando mercadorias. Hoje, ele ainda lembra aos moradores que a cidade cresceu ao seu redor, mas que a presença da natureza continua essencial.
-
-Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a dia: pequenas conchas, folhas levadas pela correnteza e peixes que surgem de vez em quando. É também um convite à reflexão, mostrando como a vida urbana e os elementos naturais podem coexistir de forma harmoniosa, criando um espaço de encontro entre passado e presente.`,
-      status: "pending",
-    },
-    {
-      id: 3,
-      title: "Parte 2",
-      description:
-        "O xerife xereta xeretou o xaxim do xisto...",
-      subtitle: "Letras trabalhadas: X",
-      content:
-        "O xerife xereta xeretou o xaxim do xisto. Ele gostava muito de xadrez e xixi de xale. Todas as quintas-feiras ele tocava xilofone na praça da cidade.",
-      status: "pending",
-    },
-    {
-      id: 4,
-      title: "História curta",
-      description: "Neque porro quisquam est, qui dolorem...",
-      subtitle: "Letras trabalhadas: R e L",
-      content:
-        "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.",
-      status: "pending",
-    },
-    {
-      id: 5,
-      title: "Texto 3",
-      description: "Sed ut perspiciatis unde omnis iste natus...",
-      subtitle: "Letras trabalhadas: S e T",
-      content:
-        "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
-      status: "pending",
-    },
-    {
-      id: 6,
-      title: "História curta",
-      description: "Lorem ipsum dolor sit amet, consectetur...",
-      subtitle: "Letras trabalhadas: L e M",
-      content:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-      status: "pending",
-    },
-  ];
 
   const handleStartStory = (story: Story) => {
     setSelectedStory(story);
@@ -238,6 +264,7 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
         storyTitle={selectedStory.title}
         storySubtitle={selectedStory.subtitle}
         storyContent={selectedStory.content}
+        storyId={selectedStory.id}
         onBack={handleBackFromStory}
       />
     );
@@ -318,23 +345,48 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
         </div>
 
         {/* Stories Timeline */}
-        <div className="px-4 grid grid-cols-1 md:grid-cols-3 gap-x-[9px] gap-y-10 max-w-6xl mx-auto">
-          {sortedStories.map((story, index) => (
-            <StoryCard
-              key={story.id}
-              story={story}
-              position={
-                index === 1
-                  ? "center"
-                  : index === 0
-                    ? "left"
-                    : "right"
-              }
-              onStart={() => handleStartStory(story)}
-              onViewRecordings={onViewRecordings}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="px-4 flex items-center justify-center py-12">
+            <p className="text-[16px] text-gray-600">Carregando trilha...</p>
+          </div>
+        ) : error ? (
+          <div className="px-4 flex items-center justify-center py-12">
+            <p className="text-[16px] text-red-600">Erro ao carregar trilha: {error}</p>
+          </div>
+        ) : !selectedTrailData ? (
+          <div className="px-4 flex items-center justify-center py-12">
+            <p className="text-[16px] text-gray-600">Nenhuma trilha disponível</p>
+          </div>
+        ) : sortedStories.length === 0 ? (
+          <div className="px-4 flex items-center justify-center py-12">
+            <div className="text-center">
+              <p className="text-[16px] text-gray-600">Nenhuma história disponível nesta trilha</p>
+              {selectedTrailData && (
+                <p className="text-[14px] text-gray-500 mt-2">
+                  Trilha: {selectedTrailData.title} ({selectedTrailData.stories?.length || 0} histórias)
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="px-4 grid grid-cols-1 md:grid-cols-3 gap-x-[9px] gap-y-10 max-w-6xl mx-auto">
+            {sortedStories.map((story, index) => (
+              <StoryCard
+                key={story.id}
+                story={story}
+                position={
+                  index === 1
+                    ? "center"
+                    : index === 0
+                      ? "left"
+                      : "right"
+                }
+                onStart={() => handleStartStory(story)}
+                onViewRecordings={onViewRecordings}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,9 +5,9 @@ import { img } from '../imports/svg-a81u4';
 import { toast } from 'sonner@2.0.3';
 
 interface Student {
-  id: number;
+  id: number | string;
   name: string;
-  age: number;
+  age?: number;
 }
 
 interface TextAnalysisProps {

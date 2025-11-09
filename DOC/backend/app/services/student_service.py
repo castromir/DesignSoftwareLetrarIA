@@ -1,16 +1,30 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from fastapi import HTTPException, status
 from app.repositories.student_repository import StudentRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.student import StudentCreate, StudentUpdate, StudentResponse, StudentListResponse
+from app.schemas.student import (
+    StudentCreate,
+    StudentUpdate,
+    StudentResponse,
+    StudentListResponse,
+    StudentTrackingResponse,
+    StudentTrackingPPMPoint,
+    StudentAttentionPoint,
+    StudentInsightSummary,
+)
 from app.models.user import UserRole
-from typing import Optional
+from app.models.recording import Recording, RecordingAnalysis
+from app.models.activity import StudentActivity, ActivityStatus
+from app.models.ai_insight import AIInsight
+from typing import Optional, List
 import uuid
 from datetime import date
 
 
 class StudentService:
     def __init__(self, session: AsyncSession):
+        self.session = session
         self.student_repository = StudentRepository(session)
         self.user_repository = UserRepository(session)
 
@@ -171,4 +185,151 @@ class StudentService:
                 detail="Aluno não encontrado"
             )
         return True
+
+    async def get_student_tracking(self, student_id: uuid.UUID | str) -> StudentTrackingResponse:
+        if isinstance(student_id, str):
+            student_uuid = uuid.UUID(student_id)
+        else:
+            student_uuid = student_id
+
+        student = await self.student_repository.get_by_id(student_uuid)
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Aluno não encontrado"
+            )
+
+        total_recordings_stmt = await self.session.execute(
+            select(func.count(Recording.id)).where(Recording.student_id == student_uuid)
+        )
+        total_recordings = total_recordings_stmt.scalar_one()
+
+        completed_activities_stmt = await self.session.execute(
+            select(func.count(StudentActivity.id)).where(
+                StudentActivity.student_id == student_uuid,
+                StudentActivity.status == ActivityStatus.completed,
+            )
+        )
+        completed_activities = completed_activities_stmt.scalar_one()
+
+        recordings_stmt = await self.session.execute(
+            select(
+                Recording.id,
+                Recording.recorded_at,
+                RecordingAnalysis.speed_wpm,
+                RecordingAnalysis.accuracy_score,
+                RecordingAnalysis.pauses_analysis,
+                RecordingAnalysis.errors_detected,
+            )
+            .join(RecordingAnalysis, RecordingAnalysis.recording_id == Recording.id, isouter=True)
+            .where(Recording.student_id == student_uuid)
+            .order_by(Recording.recorded_at.desc())
+        )
+        recordings_rows = recordings_stmt.all()
+
+        ppm_history: List[StudentTrackingPPMPoint] = []
+        accuracy_values: List[float] = []
+        wpm_values: List[float] = []
+        current_ppm: Optional[float] = None
+
+        for row in recordings_rows:
+            recording_id, recorded_at, speed_wpm, accuracy_score, pauses_analysis, errors_detected = row
+            if speed_wpm is not None:
+                wpm_values.append(speed_wpm)
+                if current_ppm is None:
+                    current_ppm = speed_wpm
+            if accuracy_score is not None:
+                accuracy_values.append(accuracy_score)
+            ppm_history.append(
+                StudentTrackingPPMPoint(
+                    recording_id=str(recording_id),
+                    recorded_at=recorded_at,
+                    words_per_minute=speed_wpm,
+                    accuracy=accuracy_score,
+                )
+            )
+
+        ppm_history = ppm_history[:30]
+
+        average_accuracy = sum(accuracy_values) / len(accuracy_values) if accuracy_values else None
+        average_wpm = sum(wpm_values) / len(wpm_values) if wpm_values else None
+
+        ppm_change_percentage: Optional[float] = None
+        if len(wpm_values) >= 2 and wpm_values[1] > 0:
+            ppm_change_percentage = ((wpm_values[0] - wpm_values[1]) / wpm_values[1]) * 100
+
+        insights_stmt = await self.session.execute(
+            select(AIInsight)
+            .where(
+                AIInsight.related_students.isnot(None),
+                AIInsight.related_students.contains([student_uuid]),
+            )
+            .order_by(AIInsight.created_at.desc())
+            .limit(5)
+        )
+        insights = list(insights_stmt.scalars().all())
+
+        attention_points: List[StudentAttentionPoint] = []
+        if recordings_rows:
+            latest_pauses = recordings_rows[0][4] or {}
+            improvement_points = latest_pauses.get("improvement_points") if isinstance(latest_pauses, dict) else None
+            if isinstance(improvement_points, list) and improvement_points:
+                for point in improvement_points[:3]:
+                    attention_points.append(
+                        StudentAttentionPoint(
+                            severity="warning",
+                            title="Ponto de melhoria",
+                            description=str(point),
+                        )
+                    )
+        if not attention_points and accuracy_values:
+            if average_accuracy is not None and average_accuracy < 70:
+                attention_points.append(
+                    StudentAttentionPoint(
+                        severity="error",
+                        title="Acurácia baixa",
+                        description="A acurácia média das leituras está abaixo de 70%. Reforce exercícios de compreensão e pronúncia.",
+                    )
+                )
+            elif average_accuracy is not None and average_accuracy >= 90:
+                attention_points.append(
+                    StudentAttentionPoint(
+                        severity="success",
+                        title="Excelente acurácia",
+                        description="O aluno mantém acurácia acima de 90%. Continue reforçando os hábitos de leitura atuais.",
+                    )
+                )
+        if not attention_points:
+            attention_points.append(
+                StudentAttentionPoint(
+                    severity="info",
+                    title="Sem alertas",
+                    description="Nenhum ponto crítico identificado nas leituras recentes.",
+                )
+            )
+
+        recent_insights = [
+            StudentInsightSummary(
+                id=str(insight.id),
+                title=insight.title,
+                type=insight.insight_type.value,
+                priority=insight.priority.value,
+                created_at=insight.created_at,
+            )
+            for insight in insights
+        ]
+
+        return StudentTrackingResponse(
+            student_id=str(student_uuid),
+            student_name=student.name,
+            total_recordings=total_recordings,
+            completed_activities=completed_activities,
+            average_accuracy=average_accuracy,
+            average_wpm=average_wpm,
+            current_ppm=current_ppm,
+            ppm_change_percentage=ppm_change_percentage,
+            ppm_history=ppm_history,
+            attention_points=attention_points,
+            recent_insights=recent_insights,
+        )
 
