@@ -73,6 +73,11 @@ async def get_student(
     service = StudentService(db)
     student = await service.get_student_by_id(student_uuid)
 
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado"
+        )
+
     # Se for professional, só pode ver seus próprios alunos
     if current_user.role.value == "professional" and str(
         student.professional_id
@@ -103,6 +108,12 @@ async def update_student(
 
     # Verificar se o aluno existe e se o usuário tem permissão
     existing_student = await service.get_student_by_id(student_uuid)
+
+    if not existing_student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado"
+        )
+
     if current_user.role.value == "professional" and str(
         existing_student.professional_id
     ) != str(current_user.id):
@@ -132,6 +143,12 @@ async def delete_student(
 
     # Verificar se o aluno existe e se o usuário tem permissão
     existing_student = await service.get_student_by_id(student_uuid)
+
+    if not existing_student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado"
+        )
+
     if current_user.role.value == "professional" and str(
         existing_student.professional_id
     ) != str(current_user.id):

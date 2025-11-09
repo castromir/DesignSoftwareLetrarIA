@@ -1,7 +1,8 @@
-import { ChevronLeft, Printer } from 'lucide-react';
-import { useState } from 'react';
-import svgPaths from '../imports/svg-7k5czerodv';
-import { img } from '../imports/svg-a81u4';
+import { ChevronLeft, Printer } from "lucide-react";
+import { useState } from "react";
+import svgPaths from "../imports/svg-7k5czerodv";
+import { img } from "../imports/svg-a81u4";
+import { transcriptionApi } from "../services/api";
 
 interface TextReaderProps {
   textId: number;
@@ -11,18 +12,50 @@ interface TextReaderProps {
   onBack: () => void;
 }
 
-export default function TextReader({ 
+export default function TextReader({
   textId,
-  textTitle, 
-  textSubtitle, 
+  textTitle,
+  textSubtitle,
   textContent,
-  onBack 
+  onBack,
 }: TextReaderProps) {
   const [eyeFatigueMode, setEyeFatigueMode] = useState(false);
   const [increasedSpacing, setIncreasedSpacing] = useState(false);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [language, setLanguage] = useState<string>("pt");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(
+    null,
+  );
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleFileChange = (e: any) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    setAudioFile(file);
+    setTranscript(null);
+    setTranscriptionError(null);
+  };
+
+  const handleTranscribe = async () => {
+    if (!audioFile) return;
+    try {
+      setIsTranscribing(true);
+      setTranscriptionError(null);
+      const res = await transcriptionApi.transcribe(audioFile, language);
+      setTranscript(res.transcript);
+    } catch (err: any) {
+      const message =
+        err?.data?.detail ||
+        err?.message ||
+        "Falha ao transcrever áudio. Verifique o arquivo e tente novamente.";
+      setTranscriptionError(message);
+    } finally {
+      setIsTranscribing(false);
+    }
   };
 
   return (
@@ -56,21 +89,92 @@ export default function TextReader({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-6 print:pb-0">
+        {/* Transcription Panel */}
+        <div className="bg-white rounded-[10px] shadow-[0px_2px_10px_0px_rgba(0,0,0,0.25)] p-5 mb-4 print:hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[16px] font-semibold text-black">
+              Transcrever áudio da leitura
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
+            <div>
+              <label className="block text-[12px] text-[#2f2f2f] mb-1">
+                Arquivo de áudio
+              </label>
+              <input
+                type="file"
+                accept="audio/*,video/webm"
+                onChange={handleFileChange}
+                className="block w-full text-[14px] border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div className="md:w-[160px]">
+              <label className="block text-[12px] text-[#2f2f2f] mb-1">
+                Idioma
+              </label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full text-[14px] border border-gray-300 rounded-md px-3 py-2 bg-white"
+              >
+                <option value="pt">Português (pt)</option>
+                <option value="en">Inglês (en)</option>
+                <option value="es">Espanhol (es)</option>
+              </select>
+            </div>
+
+            <div className="md:w-[160px]">
+              <button
+                onClick={handleTranscribe}
+                disabled={!audioFile || isTranscribing}
+                className={`w-full rounded-md px-4 py-2 text-white font-semibold ${!audioFile || isTranscribing ? "bg-gray-400 cursor-not-allowed" : "bg-[#0f61db] hover:bg-[#0e56c4]"} transition-colors`}
+              >
+                {isTranscribing ? "Transcrevendo..." : "Transcrever"}
+              </button>
+            </div>
+          </div>
+
+          {transcriptionError && (
+            <p className="mt-3 text-[13px] text-red-600">
+              {transcriptionError}
+            </p>
+          )}
+
+          {transcript && (
+            <div className="mt-4">
+              <h3 className="text-[14px] font-semibold text-[#003b80] mb-2">
+                Transcrição
+              </h3>
+              <div className="border border-gray-200 rounded-md p-3 max-h-48 overflow-auto text-[14px] leading-relaxed whitespace-pre-wrap">
+                {transcript}
+              </div>
+            </div>
+          )}
+        </div>
         <div className="bg-white rounded-[10px] shadow-[0px_2px_10px_0px_rgba(0,0,0,0.25)] p-5 print:shadow-none">
-          <div 
+          <div
             className={`text-[16px] font-medium text-black ${
-              eyeFatigueMode ? 'bg-[#f5f0e8] text-[#2b2b2b]' : ''
-            } ${
-              increasedSpacing ? 'leading-[2.5]' : 'leading-[1.875]'
-            }`}
-            style={eyeFatigueMode ? { 
-              filter: 'contrast(0.9)',
-              fontFamily: 'Inter, sans-serif'
-            } : {}}
+              eyeFatigueMode ? "bg-[#f5f0e8] text-[#2b2b2b]" : ""
+            } ${increasedSpacing ? "leading-[2.5]" : "leading-[1.875]"}`}
+            style={
+              eyeFatigueMode
+                ? {
+                    filter: "contrast(0.9)",
+                    fontFamily: "Inter, sans-serif",
+                  }
+                : {}
+            }
           >
-            {textContent.split('\n').map((paragraph, idx) => (
-              paragraph.trim() && <p key={idx} className="mb-4 last:mb-0">{paragraph.trim()}</p>
-            ))}
+            {textContent.split("\n").map(
+              (paragraph, idx) =>
+                paragraph.trim() && (
+                  <p key={idx} className="mb-4 last:mb-0">
+                    {paragraph.trim()}
+                  </p>
+                ),
+            )}
           </div>
         </div>
       </div>

@@ -34,7 +34,10 @@ class User(Base):
     )
 
     students = relationship(
-        "Student", back_populates="professional", foreign_keys="Student.professional_id"
+        "Student",
+        back_populates="professional",
+        foreign_keys="Student.professional_id",
+        passive_deletes="all",
     )
 
     @property

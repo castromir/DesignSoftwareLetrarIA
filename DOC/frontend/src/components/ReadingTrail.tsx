@@ -3,11 +3,7 @@ import { useState } from "react";
 import svgPaths from "../imports/svg-zrbw3wzc3o";
 import ReadingStory from "./ReadingStory";
 import { cn } from "./ui/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Checkbox } from "./ui/checkbox";
 import type { Student } from "../types";
 
@@ -66,9 +62,7 @@ function StoryCard({
   const isCompleted = story.status === "completed";
 
   return (
-    <div
-      className="relative w-full max-w-[331px] mx-auto h-full flex flex-col"
-    >
+    <div className="relative w-full max-w-[331px] mx-auto h-full flex flex-col">
       {/* Card */}
       <div className="bg-white rounded-[10px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col h-full">
         <div className="p-4 flex-1 flex flex-col">
@@ -92,9 +86,10 @@ function StoryCard({
             >
               Refazer
             </button>
-            <button 
+            <button
               onClick={() => onViewRecordings?.(story)}
-              className="flex-1 bg-[#ffbdbb] rounded-[10px] h-[37px] flex items-center justify-center font-semibold text-[14px] text-black hover:bg-[#ffadab] transition-colors">
+              className="flex-1 bg-[#ffbdbb] rounded-[10px] h-[37px] flex items-center justify-center font-semibold text-[14px] text-black hover:bg-[#ffadab] transition-colors"
+            >
               Ver gravações
             </button>
           </div>
@@ -116,8 +111,7 @@ export default function ReadingTrail({
   onBack,
   onViewRecordings,
 }: ReadingTrailProps) {
-  const [selectedStory, setSelectedStory] =
-    useState<Story | null>(null);
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [filterRead, setFilterRead] = useState(false);
   const [filterUnread, setFilterUnread] = useState(false);
 
@@ -137,8 +131,7 @@ export default function ReadingTrail({
     {
       id: 2,
       title: "História curta",
-      description:
-        "O rio que corta a cidade sempre esteve presente...",
+      description: "O rio que corta a cidade sempre esteve presente...",
       subtitle: "Letras trabalhadas: R e L",
       content: `O rio que corta a cidade sempre esteve presente na vida das pessoas.
 Suas margens já foram locais de encontro, de trabalho e de descanso.
@@ -157,8 +150,7 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
     {
       id: 3,
       title: "Parte 2",
-      description:
-        "O xerife xereta xeretou o xaxim do xisto...",
+      description: "O xerife xereta xeretou o xaxim do xisto...",
       subtitle: "Letras trabalhadas: X",
       content:
         "O xerife xereta xeretou o xaxim do xisto. Ele gostava muito de xadrez e xixi de xale. Todas as quintas-feiras ele tocava xilofone na praça da cidade.",
@@ -230,6 +222,7 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
     return (
       <ReadingStory
         student={student}
+        storyId={selectedStory.id.toString()}
         storyTitle={selectedStory.title}
         storySubtitle={selectedStory.subtitle}
         storyContent={selectedStory.content}
@@ -258,9 +251,7 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
         {/* Section Header */}
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[20px] font-semibold text-black">
-              Histórias
-            </h2>
+            <h2 className="text-[20px] font-semibold text-black">Histórias</h2>
             <Popover>
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-2 text-[14px] font-medium text-black hover:bg-gray-200 rounded-lg px-3 py-1 transition-colors">
@@ -276,10 +267,13 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
                       <Checkbox
                         id="filter-read"
                         checked={filterRead}
-                          onCheckedChange={(checked: boolean | string) => {
-                            const value = typeof checked === 'boolean' ? checked : checked === 'true';
-                            setFilterRead(value);
-                            if (value) setFilterUnread(false);
+                        onCheckedChange={(checked: boolean | string) => {
+                          const value =
+                            typeof checked === "boolean"
+                              ? checked
+                              : checked === "true";
+                          setFilterRead(value);
+                          if (value) setFilterUnread(false);
                         }}
                       />
                       <label
@@ -293,10 +287,13 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
                       <Checkbox
                         id="filter-unread"
                         checked={filterUnread}
-                          onCheckedChange={(checked: boolean | string) => {
-                            const value = typeof checked === 'boolean' ? checked : checked === 'true';
-                            setFilterUnread(value);
-                            if (value) setFilterRead(false);
+                        onCheckedChange={(checked: boolean | string) => {
+                          const value =
+                            typeof checked === "boolean"
+                              ? checked
+                              : checked === "true";
+                          setFilterUnread(value);
+                          if (value) setFilterRead(false);
                         }}
                       />
                       <label
@@ -320,13 +317,7 @@ Caminhar por suas margens é perceber detalhes que passam despercebidos no dia a
             <StoryCard
               key={story.id}
               story={story}
-              position={
-                index === 1
-                  ? "center"
-                  : index === 0
-                    ? "left"
-                    : "right"
-              }
+              position={index === 1 ? "center" : index === 0 ? "left" : "right"}
               onStart={() => handleStartStory(story)}
               onViewRecordings={onViewRecordings}
             />

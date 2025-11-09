@@ -315,19 +315,186 @@ export interface TranscriptionResponse {
   filename: string;
   content_type: string;
   language: string;
+  saved_file_path?: string;
 }
 
 export const transcriptionApi = {
   async transcribe(
     audioFile: File,
     language: string = "pt",
+    saveToDisk: boolean = true,
   ): Promise<TranscriptionResponse> {
     return api.uploadFile<TranscriptionResponse>(
       "/transcription/transcribe",
       audioFile,
       {
         language,
+        save_to_disk: saveToDisk.toString(),
       },
     );
+  },
+};
+
+export interface RecordingCreateData {
+  student_id: string;
+  story_id: string;
+  duration_seconds: number;
+  transcription?: string;
+  audio?: File;
+}
+
+export interface RecordingResponse {
+  id: string;
+  student_id: string;
+  story_id: string;
+  audio_file_path?: string;
+  audio_url?: string;
+  duration_seconds: number;
+  recorded_at: string;
+  transcription?: string;
+  status: string;
+  created_by?: string;
+  updated_by?: string;
+  updated_at?: string;
+}
+
+export const recordingsApi = {
+  async create(data: RecordingCreateData): Promise<RecordingResponse> {
+    // Validações básicas - o backend fará validações completas
+    if (!data.student_id) {
+      throw new ApiError("ID do estudante é obrigatório", 400);
+    }
+
+    if (!data.story_id) {
+      throw new ApiError("ID da história é obrigatório", 400);
+    }
+
+    if (data.duration_seconds === undefined || data.duration_seconds < 0) {
+      throw new ApiError("Duração deve ser um valor positivo", 400);
+    }
+
+    // Log do envio
+    if (data.audio) {
+      console.log(
+        `[API] Enviando gravação: ${(data.audio.size / 1024).toFixed(2)}KB, duração: ${data.duration_seconds.toFixed(2)}s`,
+      );
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError("Autenticação necessária", 401);
+    }
+
+    const url = `${API_BASE_URL}/recordings/`;
+
+    const formData = new FormData();
+    formData.append("student_id", data.student_id);
+    formData.append("story_id", data.story_id);
+    formData.append("duration_seconds", data.duration_seconds.toString());
+
+    if (data.transcription) {
+      formData.append("transcription", data.transcription);
+    }
+
+    if (data.audio) {
+      formData.append("audio", data.audio);
+    }
+
+    const headers: Record<string, string> = {};
+    headers.Authorization = `Bearer ${token}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (jsonError) {
+        console.error("[API] Erro ao parsear resposta JSON:", jsonError);
+        responseData = {};
+      }
+
+      if (!response.ok) {
+        let errorMessage = "Erro ao criar gravação";
+
+        if (response.status === 400) {
+          errorMessage =
+            responseData.detail || "Dados inválidos enviados ao servidor";
+        } else if (response.status === 401) {
+          errorMessage = "Não autenticado. Faça login novamente.";
+        } else if (response.status === 403) {
+          errorMessage = "Sem permissão para criar gravação";
+        } else if (response.status === 413) {
+          errorMessage = "Arquivo muito grande para o servidor processar";
+        } else if (response.status === 500) {
+          errorMessage = responseData.detail || "Erro interno no servidor";
+        } else if (responseData.detail) {
+          errorMessage = responseData.detail;
+        } else if (responseData.message) {
+          errorMessage = responseData.message;
+        }
+
+        console.error(
+          `[API] Erro ao criar gravação: ${response.status} - ${errorMessage}`,
+        );
+
+        throw new ApiError(errorMessage, response.status, responseData);
+      }
+
+      console.log("[API] Gravação criada com sucesso:", responseData.id);
+      return responseData as RecordingResponse;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
+      // Erros de rede ou CORS
+      if (error instanceof TypeError) {
+        console.error("[API] Erro de rede ou CORS:", error);
+        throw new ApiError(
+          "Erro de conexão com o servidor. Verifique sua conexão ou configurações de CORS.",
+          0,
+          error,
+        );
+      }
+
+      throw new ApiError(
+        error instanceof Error ? error.message : "Erro desconhecido",
+        0,
+        error,
+      );
+    }
+  },
+
+  async list(
+    studentId?: string,
+    storyId?: string,
+  ): Promise<{ recordings: RecordingResponse[]; total: number }> {
+    const params: Record<string, string> = {};
+    if (studentId) params.student_id = studentId;
+    if (storyId) params.story_id = storyId;
+
+    const queryString =
+      Object.keys(params).length > 0
+        ? `?${new URLSearchParams(params).toString()}`
+        : "";
+
+    return api.get<{ recordings: RecordingResponse[]; total: number }>(
+      `/recordings${queryString}`,
+    );
+  },
+
+  async getById(id: string): Promise<RecordingResponse> {
+    return api.get<RecordingResponse>(`/recordings/${id}`);
+  },
+
+  getAudioUrl(id: string): string {
+    // A autenticação é feita via Bearer token no header Authorization
+    // O backend já valida o token via dependências do FastAPI
+    return `${API_BASE_URL}/recordings/${id}/audio`;
   },
 };

@@ -1,13 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
-from fastapi.responses import FileResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.recording_service import RecordingService
-from app.schemas.recording import RecordingCreate, RecordingUpdate, RecordingResponse, RecordingListResponse
-from app.utils.dependencies import get_db, get_current_active_user
-from app.models.user import User
-from typing import Optional
 import os
 from pathlib import Path
+from typing import Optional
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
+from app.schemas.recording import (
+    RecordingCreate,
+    RecordingListResponse,
+    RecordingResponse,
+    RecordingUpdate,
+)
+from app.services.recording_service import RecordingService
+from app.utils.dependencies import get_current_active_user, get_db
 
 router = APIRouter(prefix="/recordings", tags=["gravações"])
 
@@ -24,7 +31,7 @@ async def create_recording(
 ):
     """Cria uma nova gravação com áudio e transcrição."""
     service = RecordingService(db)
-    
+
     audio_file_path = None
     if audio:
         audio_bytes = await audio.read()
@@ -35,7 +42,7 @@ async def create_recording(
                 _, ext = os.path.splitext(audio.filename)
                 if ext:
                     file_extension = ext.lower()
-            
+
             # Salvar arquivo
             audio_file_path = await service.save_audio_file(
                 audio_bytes,
@@ -43,20 +50,20 @@ async def create_recording(
                 story_id,
                 file_extension,
             )
-    
+
     data = RecordingCreate(
         student_id=student_id,
         story_id=story_id,
         duration_seconds=duration_seconds,
         transcription=transcription,
     )
-    
+
     recording = await service.create_recording(
         data,
         audio_file_path=audio_file_path,
         created_by=current_user.id,
     )
-    
+
     return recording
 
 
@@ -69,19 +76,19 @@ async def list_recordings(
 ):
     """Lista gravações com filtros opcionais."""
     service = RecordingService(db)
-    
+
     # Se for profissional, só pode ver gravações dos seus alunos
     filter_student_id = student_id
     if current_user.role.value == "professional" and not student_id:
         # Buscar apenas alunos do profissional
         # Por enquanto, permitir ver todas se não especificar
         pass
-    
+
     result = await service.get_all_recordings(
         student_id=filter_student_id,
         story_id=story_id,
     )
-    
+
     return result
 
 
@@ -94,13 +101,12 @@ async def get_recording(
     """Obtém uma gravação específica."""
     service = RecordingService(db)
     recording = await service.get_recording_by_id(recording_id)
-    
+
     if not recording:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Gravação não encontrada"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Gravação não encontrada"
         )
-    
+
     return recording
 
 
@@ -110,33 +116,36 @@ async def get_recording_audio(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Retorna o arquivo de áudio da gravação."""
+    """Retorna o arquivo de áudio da gravação.
+
+    A autenticação é feita via Bearer token no header Authorization.
+    """
     service = RecordingService(db)
     recording = await service.get_recording_by_id(recording_id)
-    
+
     if not recording:
         print(f"[Recording Audio] Gravação não encontrada: {recording_id}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Gravação não encontrada"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Gravação não encontrada"
         )
-    
+
     if not recording.audio_file_path:
         print(f"[Recording Audio] Gravação sem caminho de arquivo: {recording_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Arquivo de áudio não encontrado"
+            detail="Arquivo de áudio não encontrado",
         )
-    
+
     # Caminho completo do arquivo (usar caminho absoluto)
     import os
+
     base_path = Path(os.getcwd())
     file_path = base_path / "uploads" / recording.audio_file_path
-    
+
     print(f"[Recording Audio] CWD: {os.getcwd()}")
     print(f"[Recording Audio] Procurando arquivo em: {file_path}")
     print(f"[Recording Audio] Arquivo existe: {file_path.exists()}")
-    
+
     if not file_path.exists():
         # Tentar caminho relativo também
         alt_path = Path("uploads") / recording.audio_file_path
@@ -147,9 +156,9 @@ async def get_recording_audio(
             print(f"[Recording Audio] Arquivo não encontrado no servidor: {file_path}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Arquivo de áudio não encontrado no servidor"
+                detail="Arquivo de áudio não encontrado no servidor",
             )
-    
+
     # Determinar content type baseado na extensão
     content_type = "audio/webm"
     if file_path.suffix == ".mp3":
@@ -160,9 +169,11 @@ async def get_recording_audio(
         content_type = "audio/mp4"
     elif file_path.suffix == ".ogg":
         content_type = "audio/ogg"
-    
-    print(f"[Recording Audio] Retornando arquivo: {file_path}, tipo: {content_type}, tamanho: {file_path.stat().st_size if file_path.exists() else 0} bytes")
-    
+
+    print(
+        f"[Recording Audio] Retornando arquivo: {file_path}, tipo: {content_type}, tamanho: {file_path.stat().st_size if file_path.exists() else 0} bytes"
+    )
+
     return FileResponse(
         path=str(file_path.absolute()),
         media_type=content_type,
@@ -179,18 +190,25 @@ async def update_recording(
 ):
     """Atualiza uma gravação."""
     service = RecordingService(db)
+
+    # Validar que a gravação existe antes de tentar atualizar
+    existing_recording = await service.get_recording_by_id(recording_id)
+    if not existing_recording:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Gravação não encontrada"
+        )
+
     recording = await service.update_recording(
         recording_id,
         data,
         updated_by=current_user.id,
     )
-    
+
     if not recording:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Gravação não encontrada"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Erro ao atualizar gravação"
         )
-    
+
     return recording
 
 
@@ -202,13 +220,20 @@ async def delete_recording(
 ):
     """Deleta uma gravação."""
     service = RecordingService(db)
+
+    # Validar que a gravação existe antes de tentar deletar
+    existing_recording = await service.get_recording_by_id(recording_id)
+    if not existing_recording:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Gravação não encontrada"
+        )
+
     result = await service.delete_recording(recording_id)
-    
+
     if not result:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Gravação não encontrada"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao deletar gravação",
         )
-    
-    return None
 
+    return None
