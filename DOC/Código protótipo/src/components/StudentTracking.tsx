@@ -1,12 +1,14 @@
-import { ChevronLeft } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import svgPaths from '../imports/svg-p7j9lqrllg';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { studentsApi } from '../services/api';
+import type { StudentTrackingResponse, StudentAttentionPoint } from '../types';
 
 interface Student {
-  id: number;
+  id: number | string;
   name: string;
-  age: number;
+  age?: number;
 }
 
 interface StudentTrackingProps {
@@ -61,6 +63,27 @@ function TrendIcon() {
   );
 }
 
+const formatNumber = (value?: number | null, decimals = 0) => {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return "–";
+  }
+  return value.toFixed(decimals).replace(".", ",");
+};
+
+const attentionBackgroundMap: Record<StudentAttentionPoint["severity"], string> = {
+  info: "bg-[#e5f5ff]",
+  warning: "bg-[#fef6e9]",
+  error: "bg-[#fef3ef]",
+  success: "bg-[#e6f7ed]",
+};
+
+const attentionIconMap: Record<StudentAttentionPoint["severity"], React.ReactNode> = {
+  info: <InfoIcon />,
+  warning: <WarningIcon />,
+  error: <ErrorIcon />,
+  success: <TrendIcon />,
+};
+
 function MonthSelector({ selectedMonth, onSelectMonth }: { selectedMonth: string; onSelectMonth: (month: string) => void }) {
   const months = ['Agosto', 'Setembro', 'Outubro'];
   
@@ -85,185 +108,262 @@ function MonthSelector({ selectedMonth, onSelectMonth }: { selectedMonth: string
   );
 }
 
-function OverviewCard() {
+function OverviewCard({
+  metrics,
+  isLoading,
+}: {
+  metrics: StudentTrackingResponse | null;
+  isLoading: boolean;
+}) {
+  const totalRecordings = metrics?.total_recordings ?? 0;
+  const completedActivities = metrics?.completed_activities ?? 0;
+  const averageAccuracy = metrics?.average_accuracy;
+  const averageWpm = metrics?.average_wpm;
+  const accuracyDisplay = averageAccuracy === undefined || averageAccuracy === null ? "–" : `${formatNumber(averageAccuracy, 1)}%`;
+  const averageWpmDisplay = formatNumber(averageWpm, 1);
+
   return (
-    <div className="bg-gradient-to-br from-[#4084dd] to-[#2d6fd9] rounded-[10px] p-6 md:p-8 h-full shadow-lg">
-      <h3 className="text-[20px] md:text-[24px] font-semibold text-white text-center mb-6 md:mb-8">Visão geral</h3>
+    <div className="bg-gradient-to-br from-[#4084dd] to-[#2d6fd9] rounded-[10px] p-6 md:p-8 h-full shadow-lg text-white">
+      <h3 className="text-[20px] md:text-[24px] font-semibold text-center mb-6 md:mb-8">
+        Visão geral
+      </h3>
       <div className="grid grid-cols-2 gap-6 md:gap-8">
         <div className="text-center">
           <div className="bg-white/20 rounded-[10px] p-4 md:p-6 backdrop-blur-sm">
             <p className="text-[13px] md:text-[14px] text-white/90 mb-3">Gravações totais</p>
-            <p className="text-[32px] md:text-[48px] font-bold text-white leading-none">48</p>
+            <p className="text-[32px] md:text-[48px] font-bold leading-none">
+              {isLoading ? "–" : totalRecordings}
+            </p>
           </div>
         </div>
         <div className="text-center">
           <div className="bg-white/20 rounded-[10px] p-4 md:p-6 backdrop-blur-sm">
-            <p className="text-[13px] md:text-[14px] text-white/90 mb-3">Cards completados</p>
-            <p className="text-[32px] md:text-[48px] font-bold text-white leading-none">32</p>
+            <p className="text-[13px] md:text-[14px] text-white/90 mb-3">Atividades concluídas</p>
+            <p className="text-[32px] md:text-[48px] font-bold leading-none">
+              {isLoading ? "–" : completedActivities}
+            </p>
           </div>
+        </div>
+      </div>
+      <div className="mt-6 grid grid-cols-1 gap-4">
+        <div className="bg-white/15 rounded-[10px] px-4 py-3 flex items-center justify-between">
+          <span className="text-[13px] md:text-[14px] text-white/90">Acurácia média</span>
+          <span className="text-[18px] md:text-[20px] font-semibold">
+            {isLoading ? "–" : accuracyDisplay}
+          </span>
+        </div>
+        <div className="bg-white/15 rounded-[10px] px-4 py-3 flex items-center justify-between">
+          <span className="text-[13px] md:text-[14px] text-white/90">PPM médio</span>
+          <span className="text-[18px] md:text-[20px] font-semibold">
+            {isLoading ? "–" : averageWpmDisplay}
+          </span>
         </div>
       </div>
     </div>
   );
 }
 
-function PPMCard() {
-  // Dados do gráfico - variações de PPM ao longo das semanas
-  const chartData = [
-    { week: 'Sem 1', day: 1, ppm: 85 },
-    { week: 'Sem 1', day: 2, ppm: 95 },
-    { week: 'Sem 1', day: 3, ppm: 125 },
-    { week: 'Sem 1', day: 4, ppm: 145 },
-    { week: 'Sem 1', day: 5, ppm: 135 },
-    { week: 'Sem 1', day: 6, ppm: 115 },
-    { week: 'Sem 1', day: 7, ppm: 105 },
-    { week: 'Sem 2', day: 8, ppm: 95 },
-    { week: 'Sem 2', day: 9, ppm: 110 },
-    { week: 'Sem 2', day: 10, ppm: 130 },
-    { week: 'Sem 2', day: 11, ppm: 135 },
-    { week: 'Sem 2', day: 12, ppm: 125 },
-    { week: 'Sem 2', day: 13, ppm: 115 },
-    { week: 'Sem 2', day: 14, ppm: 105 },
-    { week: 'Sem 3', day: 15, ppm: 100 },
-    { week: 'Sem 3', day: 16, ppm: 115 },
-    { week: 'Sem 3', day: 17, ppm: 125 },
-    { week: 'Sem 3', day: 18, ppm: 135 },
-    { week: 'Sem 3', day: 19, ppm: 130 },
-    { week: 'Sem 3', day: 20, ppm: 115 },
-    { week: 'Sem 3', day: 21, ppm: 95 },
-    { week: 'Sem 4', day: 22, ppm: 85 },
-    { week: 'Sem 4', day: 23, ppm: 105 },
-    { week: 'Sem 4', day: 24, ppm: 145 },
-    { week: 'Sem 4', day: 25, ppm: 155 },
-    { week: 'Sem 4', day: 26, ppm: 140 },
-    { week: 'Sem 4', day: 27, ppm: 130 },
-    { week: 'Sem 4', day: 28, ppm: 125 },
-  ];
+function PPMCard({
+  history,
+  currentPPM,
+  ppmChangePercentage,
+  averageWpm,
+  isLoading,
+}: {
+  history: StudentTrackingResponse["ppm_history"];
+  currentPPM?: number;
+  ppmChangePercentage?: number;
+  averageWpm?: number;
+  isLoading: boolean;
+}) {
+  const chartData = useMemo(() => {
+    if (!history || history.length === 0) {
+      return [] as Array<{ index: number; ppm: number; label: string }>;
+    }
+    return [...history]
+      .sort(
+        (a, b) =>
+          new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
+      )
+      .map((item, index) => ({
+        index: index + 1,
+        ppm: item.words_per_minute ?? 0,
+        label: new Date(item.recorded_at).toLocaleDateString("pt-BR"),
+      }));
+  }, [history]);
+
+  const changeValue = ppmChangePercentage ?? null;
+  const changeLabel =
+    changeValue === null
+      ? "–"
+      : `${changeValue > 0 ? "+" : changeValue < 0 ? "-" : ""}${Math.abs(changeValue).toFixed(1).replace(".", ",")}%`;
+  const changeClass =
+    changeValue === null || changeValue >= 0 ? "text-[#4fc549]" : "text-[#d94841]";
 
   return (
     <div className="bg-white rounded-[10px] border border-black/12 p-6 md:p-8 h-full shadow-sm">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <div className="flex items-center justify-center md:justify-start gap-3 mb-4 md:mb-0">
-          <h3 className="text-[32px] md:text-[48px] font-bold text-[#4084dd] leading-none">122</h3>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div className="flex items-center justify-center md:justify-start gap-3">
           <div>
-            <span className="text-[18px] md:text-[22px] font-semibold text-black block">PPM</span>
-            <div className="flex items-center gap-1.5 mt-1">
-              <TrendIcon />
-              <span className="text-[13px] md:text-[14px] font-bold text-[#4fc549]">+10%</span>
-            </div>
+            <h3 className="text-[32px] md:text-[48px] font-bold text-[#4084dd] leading-none">
+              {isLoading ? "–" : formatNumber(currentPPM, 0)}
+            </h3>
+            <span className="text-[18px] md:text-[22px] font-semibold text-black block">PPM atual</span>
+          </div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <TrendIcon />
+            <span className={`text-[13px] md:text-[14px] font-bold ${changeClass}`}>
+              {changeLabel}
+            </span>
           </div>
         </div>
         <div className="text-center md:text-right">
-          <p className="text-[14px] md:text-[15px] text-black/70">Média recomendada</p>
-          <p className="text-[16px] md:text-[18px] font-semibold text-black">120 - 150 PPM</p>
+          <p className="text-[14px] md:text-[15px] text-black/70">PPM médio</p>
+          <p className="text-[16px] md:text-[18px] font-semibold text-black">
+            {isLoading ? "–" : formatNumber(averageWpm, 1)}
+          </p>
+          <p className="text-[12px] md:text-[13px] text-black/50 mt-1">Faixa recomendada: 120 - 150 PPM</p>
         </div>
       </div>
-      
-      {/* Chart */}
+
       <div className="h-[180px] md:h-[240px] mb-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart 
-            data={chartData}
-            margin={{ top: 10, right: 5, left: -20, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="colorPpm" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4084dd" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#4084dd" stopOpacity={0.05}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="0" stroke="#f0f0f0" vertical={false} />
-            <XAxis 
-              dataKey="day" 
-              hide={true}
-              domain={[1, 28]}
-            />
-            <YAxis 
-              hide={true}
-              domain={[60, 180]}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="ppm" 
-              stroke="#4084dd" 
-              strokeWidth={3}
-              fill="url(#colorPpm)" 
-              animationDuration={1500}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-      
-      {/* Week Labels */}
-      <div className="flex justify-between text-[14px] md:text-[15px] text-black/70 font-medium px-2 mt-2">
-        <span>Sem 1</span>
-        <span>Sem 2</span>
-        <span>Sem 3</span>
-        <span>Sem 4</span>
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-[#4084dd]" />
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <p className="text-[13px] text-black/50">Sem leituras suficientes para exibir o gráfico.</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorPpm" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4084dd" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#4084dd" stopOpacity={0.05} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="0" stroke="#f0f0f0" vertical={false} />
+              <XAxis
+                dataKey="index"
+                tickFormatter={(value) => {
+                  const item = chartData[value - 1];
+                  return item ? item.label : String(value);
+                }}
+                minTickGap={24}
+                tick={{ fontSize: 12, fill: "#555" }}
+              />
+              <YAxis
+                hide
+                domain={[(dataMin: number) => dataMin - 10, (dataMax: number) => dataMax + 10]}
+              />
+              <Area
+                type="monotone"
+                dataKey="ppm"
+                stroke="#4084dd"
+                strokeWidth={3}
+                fill="url(#colorPpm)"
+                animationDuration={800}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
 }
 
-interface AttentionPointProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  bgColor: string;
-}
+function AttentionPointCard({ point }: { point: StudentAttentionPoint }) {
+  const bgColor = attentionBackgroundMap[point.severity] ?? "bg-[#e5f5ff]";
+  const icon = attentionIconMap[point.severity] ?? <InfoIcon />;
 
-function AttentionPoint({ icon, title, description, bgColor }: AttentionPointProps) {
   return (
     <div className={`${bgColor} rounded-[12px] p-5 md:p-6 h-full flex flex-col border border-black/5 hover:shadow-md transition-shadow`}>
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0">{icon}</div>
-        <h4 className="text-[15px] md:text-[16px] font-bold text-black leading-tight">{title}</h4>
+        <h4 className="text-[15px] md:text-[16px] font-bold text-black leading-tight">{point.title}</h4>
       </div>
-      <p className="text-[13px] md:text-[14px] font-medium text-black/80 mb-4 flex-1 leading-relaxed">
-        {description}
+      <p className="text-[13px] md:text-[14px] font-medium text-black/80 leading-relaxed flex-1">
+        {point.description}
       </p>
-      <button className="text-[13px] md:text-[14px] font-semibold text-[#008bc7] hover:text-[#006a9f] hover:underline text-left transition-colors">
-        Ver atividades recomendadas →
-      </button>
     </div>
   );
 }
 
-function AttentionPointsCard() {
+function AttentionPointsCard({
+  points,
+  isLoading,
+}: {
+  points: StudentAttentionPoint[];
+  isLoading: boolean;
+}) {
   return (
     <div className="bg-white rounded-[10px] border border-black/12 p-6 md:p-8 shadow-sm">
       <h3 className="text-[20px] md:text-[24px] font-semibold text-black mb-6">Pontos de atenção</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        <AttentionPoint
-          icon={<WarningIcon />}
-          title="Dificuldade com dígrafos"
-          description="O aluno apresenta dificuldade em pronunciar palavras com 'ch', íh', 'nh."
-          bgColor="bg-[#fef6e9]"
-        />
-        
-        <AttentionPoint
-          icon={<ErrorIcon />}
-          title="Pausas longas"
-          description="Foram identificadas muitas pausas durante a leitura."
-          bgColor="bg-[#fef3ef]"
-        />
-        
-        <AttentionPoint
-          icon={<InfoIcon />}
-          title="Precisão média"
-          description="O aluno demonstra uma precisão média na leitura, com alguns erros ocasionais."
-          bgColor="bg-[#e5f5ff]"
-        />
-      </div>
+      {isLoading ? (
+        <div className="py-10 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-[#4084dd]" />
+        </div>
+      ) : points.length === 0 ? (
+        <p className="text-[13px] md:text-[14px] text-black/60">
+          Nenhum ponto de atenção identificado nas leituras recentes.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {points.map((point, index) => (
+            <AttentionPointCard key={`${point.title}-${index}`} point={point} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function StudentTracking({ student, onBack }: StudentTrackingProps) {
   const [selectedMonth, setSelectedMonth] = useState('Outubro');
+  const [tracking, setTracking] = useState<StudentTrackingResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!student) return;
+    const studentId = typeof student.id === 'string' ? student.id : student.id.toString();
+
+    let isMounted = true;
+    const load = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await studentsApi.getTracking(studentId);
+        if (isMounted) {
+          setTracking(response);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar métricas do aluno:', err);
+        if (isMounted) {
+          setError('Não foi possível carregar o rastreamento deste aluno.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [student?.id]);
 
   if (!student) return null;
+
+  const history = tracking?.ppm_history ?? [];
+  const attentionPoints = tracking?.attention_points ?? [];
 
   return (
     <div className="min-h-screen bg-[#f0f0f0]">
@@ -299,30 +399,47 @@ export default function StudentTracking({ student, onBack }: StudentTrackingProp
       {/* Content */}
       <div className="pb-6 bg-[#f0f0f0]">
         <div className="px-4 md:px-8 max-w-7xl mx-auto">
+          {error && (
+            <div className="bg-[#ffe2dd] border border-[#f87171] text-[#c00000] rounded-[10px] p-4 text-[13px] mb-4">
+              {error}
+            </div>
+          )}
           {/* Mobile Layout */}
           <div className="lg:hidden">
-            <OverviewCard />
+            <OverviewCard metrics={tracking} isLoading={isLoading} />
             <div className="mb-4" />
-            <PPMCard />
+            <PPMCard
+              history={history}
+              currentPPM={tracking?.current_ppm}
+              ppmChangePercentage={tracking?.ppm_change_percentage}
+              averageWpm={tracking?.average_wpm}
+              isLoading={isLoading}
+            />
             <div className="mb-4" />
-            <AttentionPointsCard />
+            <AttentionPointsCard points={attentionPoints} isLoading={isLoading} />
           </div>
           
           {/* Desktop Grid Layout */}
           <div className="hidden lg:grid lg:grid-cols-12 gap-6">
             {/* Visão Geral - Destaque à esquerda */}
             <div className="lg:col-span-4">
-              <OverviewCard />
+              <OverviewCard metrics={tracking} isLoading={isLoading} />
             </div>
             
             {/* PPM Card - Maior à direita */}
             <div className="lg:col-span-8">
-              <PPMCard />
+              <PPMCard
+                history={history}
+                currentPPM={tracking?.current_ppm}
+                ppmChangePercentage={tracking?.ppm_change_percentage}
+                averageWpm={tracking?.average_wpm}
+                isLoading={isLoading}
+              />
             </div>
             
             {/* Pontos de Atenção - Full width abaixo */}
             <div className="lg:col-span-12">
-              <AttentionPointsCard />
+              <AttentionPointsCard points={attentionPoints} isLoading={isLoading} />
             </div>
           </div>
         </div>

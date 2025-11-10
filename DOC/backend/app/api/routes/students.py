@@ -7,6 +7,7 @@ from app.schemas.student import (
     StudentUpdate,
     StudentResponse,
     StudentListResponse,
+    StudentTrackingResponse,
 )
 from app.utils.dependencies import get_current_active_user
 from app.models.user import User
@@ -78,6 +79,32 @@ async def get_student(
         )
     
     return student
+
+
+@router.get("/{student_id}/tracking", response_model=StudentTrackingResponse)
+async def get_student_tracking(
+    student_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    try:
+        student_uuid = uuid.UUID(student_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID do aluno inválido"
+        )
+
+    service = StudentService(db)
+    student = await service.get_student_by_id(student_uuid)
+
+    if current_user.role.value == "professional" and str(student.professional_id) != str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para acessar este aluno"
+        )
+
+    return await service.get_student_tracking(student_uuid)
 
 
 @router.put("/{student_id}", response_model=StudentResponse)

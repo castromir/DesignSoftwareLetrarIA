@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Settings,
   BookOpen,
@@ -38,6 +38,7 @@ import ActivitiesList from "./ActivitiesList";
 import ReportsAnalytics from "./ReportsAnalytics";
 import DiagnosticsList from "./DiagnosticsList";
 import TextReader from "./TextReader";
+import StudentActivitiesPanel from "./StudentActivitiesPanel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,6 +110,7 @@ export function ProfessionalHome({
   const [showRecordings, setShowRecordings] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showStudentActivities, setShowStudentActivities] = useState(false);
   const [selectedStory, setSelectedStory] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
@@ -367,6 +369,11 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setShowTracking(true);
   };
 
+const handleViewStudentActivities = () => {
+  setProfileOpen(false);
+  setShowStudentActivities(true);
+};
+
   const handleViewDiagnosticFromProfile = () => {
     setProfileOpen(false);
     setShowDiagnostic(true);
@@ -398,6 +405,11 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setShowTracking(false);
     setProfileOpen(true);
   };
+
+const handleBackFromStudentActivities = () => {
+  setShowStudentActivities(false);
+  setProfileOpen(true);
+};
 
   const handleBackFromRecordings = () => {
     setShowRecordings(false);
@@ -453,12 +465,16 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         students={students}
         selectedStudentId={selectedStudent.id}
         onStudentChange={(studentId) => {
-          const newStudent = students.find(s => s.id === studentId);
+          const newStudent = students.find((student) => student.id === studentId);
           if (newStudent) {
             setSelectedStudent(newStudent);
           }
         }}
         onBack={handleBackFromExport}
+        onReportCreated={() => {
+          setShowExport(false);
+          setShowReports(true);
+        }}
       />
     );
   }
@@ -632,6 +648,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setShowRecordings(false);
     setShowTracking(false);
     setShowExport(false);
+    setShowStudentActivities(false);
     setShowCreateActivity(false);
     setShowActivitiesList(false);
     setSelectedStudent(null);
@@ -677,21 +694,22 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   };
 
   // Show Recordings List fullscreen
-  if (showRecordings && selectedStudent && selectedStory) {
+if (showRecordings && selectedStudent && selectedStory) {
     return (
       <RecordingsList
-        student={selectedStudent}
-        storyTitle={selectedStory.title}
+      student={selectedStudent}
+        storyId={selectedStory.id || selectedStory.storyId || ""}
+        storyTitle={selectedStory.title || selectedStory.storyTitle || ""}
         onBack={handleBackFromRecordings}
       />
     );
   }
 
   // Show Reading Progress fullscreen
-  if (showProgress && selectedStudent) {
+if (showProgress && selectedStudent) {
     return (
       <ReadingProgress
-        student={selectedStudent}
+      student={selectedStudent}
         onBack={handleBackFromProgress}
         onViewRecordings={handleViewRecordings}
       />
@@ -699,20 +717,29 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   }
 
   // Show Student Tracking fullscreen
-  if (showTracking && selectedStudent) {
+if (showTracking && selectedStudent) {
     return (
       <StudentTracking
-        student={selectedStudent}
+      student={selectedStudent}
         onBack={handleBackFromTracking}
       />
     );
   }
 
+if (showStudentActivities && selectedStudent) {
+  return (
+    <StudentActivitiesPanel
+      student={selectedStudent}
+      onBack={handleBackFromStudentActivities}
+    />
+  );
+}
+
   // Show Reading Trail fullscreen
-  if (showTrail && selectedStudent) {
+if (showTrail && selectedStudent) {
     return (
       <ReadingTrail
-        student={selectedStudent}
+      student={selectedStudent}
         onBack={handleBackFromTrail}
         onViewRecordings={handleViewRecordingsFromTrail}
       />
@@ -1349,6 +1376,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         onViewProgress={handleViewProgress}
         onViewTracking={handleViewTracking}
         onViewDiagnostic={handleViewDiagnosticFromProfile}
+        onViewStudentActivities={handleViewStudentActivities}
         onEditStudent={handleEditStudent}
         onDeleteStudent={handleDeleteStudent}
         onExportReports={handleViewExport}

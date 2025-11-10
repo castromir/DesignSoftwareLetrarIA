@@ -8,65 +8,139 @@ Grupo 2 : https://www.figma.com/design/HD1vK6dSyNRxFuPE80wTmp/Prot%C3%B3tipos-de
 
 # Letrar IA - Guia de Instalação e Execução
 
+## Visão Geral
+
+O projeto possui dois serviços principais:
+- **Backend** (FastAPI + PostgreSQL) disponível em `http://localhost:8888`
+- **Frontend** (React/Vite) disponível em `http://localhost:5174`
+
+A aplicação utiliza transcrição automática (Whisper) e geração de insights via **Google Gemini**. Após gravar e transcrever um áudio, as métricas são calculadas automaticamente e um insight é persistido no banco e exibido na interface.
+
 ## Pré-requisitos
 
-- Docker e Docker Compose instalados
 - Git instalado
+- Docker Engine 24+ e Docker Compose Plugin
+- Python 3.11 ou 3.12 com `pip`
+- Node.js 18 ou superior com `npm`
+- `ffmpeg` instalado no sistema (requisito do Whisper). Em distribuições Debian/Ubuntu: `sudo apt-get install ffmpeg`
+- Conta no Google AI Studio com acesso ao modelo Gemini e chave ativa
 
-## Passo a Passo de Instalação
-
-### 1. Clonar o Repositório
+## 1. Clonar o repositório
 
 ```bash
 git clone git@github.com:castromir/DesignSoftwareLetrarIA.git
 cd DesignSoftwareLetrarIA/DOC
 ```
 
-### 2. Iniciar os Serviços com Docker
+## 2. Configurar variáveis de ambiente
 
-Subir todos os serviços (banco de dados, backend e frontend):
+### Backend (`DOC/backend/.env`)
+
+1. Copie o modelo:
+   ```bash
+   cd backend
+   cp env.example .env
+   ```
+2. Ajuste os campos obrigatórios no arquivo `.env`:
+   - `DATABASE_URL`: URL do PostgreSQL. O valor padrão do exemplo funciona com o banco do Docker (`postgresql+asyncpg://letraria_user:letraria_password@localhost:55432/letraria_db`).
+   - `SECRET_KEY`: gere uma chave segura (`openssl rand -hex 32`) e substitua o valor.
+   - `CORS_ORIGINS`: inclua as origens utilizadas no frontend (ex.: `["http://localhost:5174"]`).
+   - `ENVIRONMENT=development` e `DEBUG=true` para desenvolvimento local.
+   - `OPENAI_API_KEY`: opcional se for utilizar a API oficial da OpenAI; o projeto usa Whisper local, mas a variável é lida.
+   - `GOOGLE_GENAI_API_KEY`: chave gerada no Google AI Studio (obrigatória para geração automática de insights).
+   - `GOOGLE_GENAI_MODEL=gemini-2.5-flash` (este modelo está homologado no projeto).
+   - `GOOGLE_GENAI_LOCATION=us-central1` (região recomendada para o modelo).
+3. Volte para a pasta raiz:
+   ```bash
+   cd ..
+   ```
+
+### Frontend (`DOC/Código protótipo/.env.local`)
+
+1. Crie o arquivo de ambiente:
+   ```bash
+   cd "Código protótipo"
+   echo "VITE_API_URL=http://localhost:8888" > .env.local
+   cd ..
+   ```
+2. Ajuste a URL caso execute o backend em outro host ou porta.
+
+## 3. Executar com Docker (recomendado)
+
+1. Subir banco, backend e frontend:
+   ```bash
+   docker-compose -f docker-compose.dev.yml up -d
+   ```
+   - PostgreSQL disponível na porta **55432**
+   - Backend FastAPI na porta **8888**
+   - Frontend Vite na porta **5174**
+2. Aplicar migrations:
+   ```bash
+   docker exec letraria-backend-dev alembic upgrade head
+   ```
+3. Popular dados iniciais:
+   ```bash
+   docker exec letraria-backend-dev python /app/run_seed.py
+   ```
+   O seed cria usuários profissionais, alunos, trilhas e atividades para testes.
+4. Confirmar status:
+   ```bash
+   docker-compose -f docker-compose.dev.yml ps
+   ```
+   Todos os serviços devem exibir `Up`.
+
+## 4. Executar localmente sem Docker (opcional)
+
+### Banco de dados
+
+- Utilize o PostgreSQL do Docker compondo apenas o serviço de banco:
+  ```bash
+  docker compose -f docker-compose.dev.yml up -d db
+  ```
+  ou configure um PostgreSQL local com as credenciais do `.env`.
+
+### Backend
 
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+alembic upgrade head
+python run_seed.py              # opcional, popula dados de teste
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8888
 ```
 
-Este comando irá:
-- Criar e iniciar o container do PostgreSQL na porta **55432**
-- Criar e iniciar o container do Backend (FastAPI) na porta **8888**
-- Criar e iniciar o container do Frontend (React/Vite) na porta **5174**
+Certifique-se de que a pasta `uploads/recordings` seja gravável; ela é criada automaticamente ao iniciar o serviço.
 
-### 3. Executar as Migrations do Banco de Dados
-
-Aplicar as migrations para criar as tabelas no banco:
+### Frontend
 
 ```bash
-docker exec letraria-backend-dev alembic upgrade head
+cd "Código protótipo"
+npm install
+npm run dev -- --host --port 5174
 ```
 
-Este comando irá criar todas as tabelas definidas nos models SQLAlchemy.
+O frontend irá ler `VITE_API_URL` para apontar para o backend.
 
-### 4. Popular o Banco com Dados Iniciais (Seeders)
+## 5. Verificar funcionamento
 
-Executar o seed para criar usuários iniciais:
+1. Acesse `http://localhost:5174` e faça login com um dos profissionais criados pelo seed (por exemplo, `professor@letraria.com` / `prof123`).
+2. Grave uma leitura na tela de histórias. Após o envio:
+   - O áudio é armazenado.
+   - O Whisper realiza a transcrição automática (verifique a saída no terminal se for a primeira execução, pois o modelo será baixado).
+   - O serviço de análise calcula métricas (acurácia, fluência, prosódia, PPM).
+   - O Gemini gera um insight automaticamente usando RAG com diagnóstico, histórico e métricas; o conteúdo é salvo e exibido em “Insights da IA”.
+3. Consulte os detalhes em `Gravações` → `Ver métricas` para confirmar duração correta, palavras com erro e pontos de melhoria da IA.
 
-```bash
-docker exec letraria-backend-dev python /app/run_seed.py
-```
+## 6. Integrações de IA e transcrição
 
-Este comando criará:
-- 4 usuários (1 admin + 3 profissionais)
-- 6 alunos (vinculados ao primeiro profissional)
-- 6 atividades (vinculadas aos alunos do profissional)
-
-### 5. Verificar se os Serviços Estão Rodando
-
-Verificar o status dos containers:
-
-```bash
-docker-compose -f docker-compose.dev.yml ps
-```
-
-Todos os serviços devem estar com status `Up`.
+- **Whisper local**: já incluído em `requirements.txt`. Exige `ffmpeg` instalado e baixa o modelo na primeira execução.
+- **Google Gemini**:
+  - Crie uma chave no [Google AI Studio](https://aistudio.google.com/) e copie para `GOOGLE_GENAI_API_KEY`.
+  - Use o modelo `gemini-2.5-flash` e região `us-central1`.
+  - O backend registra logs em caso de erro (`GeminiServiceError`); consulte o console do servidor para entender falhas de prompt, credenciais ou limites.
+- **CORS**: ao rodar em desenvolvimento, o backend inclui automaticamente `http://localhost:5174` quando `ENVIRONMENT=development`. Ajuste `CORS_ORIGINS` se publicar em outro domínio.
 
 ## Credenciais de Acesso
 

@@ -2,7 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.recording_service import RecordingService
-from app.schemas.recording import RecordingCreate, RecordingUpdate, RecordingResponse, RecordingListResponse
+from app.schemas.recording import (
+    RecordingCreate,
+    RecordingUpdate,
+    RecordingResponse,
+    RecordingListResponse,
+    RecordingMetricsResponse,
+)
 from app.utils.dependencies import get_db, get_current_active_user
 from app.models.user import User
 from typing import Optional
@@ -102,6 +108,24 @@ async def get_recording(
         )
     
     return recording
+
+
+@router.get("/{recording_id}/metrics", response_model=RecordingMetricsResponse)
+async def get_recording_metrics(
+    recording_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    service = RecordingService(db)
+    metrics = await service.get_recording_metrics(recording_id)
+
+    if not metrics:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gravação não encontrada"
+        )
+
+    return metrics
 
 
 @router.get("/{recording_id}/audio")

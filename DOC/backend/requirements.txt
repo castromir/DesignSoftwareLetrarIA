@@ -26,6 +26,7 @@ requests==2.31.0
 # IA e Transcrição
 openai==1.12.0
 openai-whisper
+google-genai
 
 # Testes
 pytest==7.4.3

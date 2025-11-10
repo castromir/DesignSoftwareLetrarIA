@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Literal
 from datetime import date, datetime
 from app.models.student import StudentStatus, Gender
 
@@ -49,4 +49,42 @@ class StudentListResponse(BaseModel):
     active: int
     inactive: int
     students: list[StudentResponse]
+
+
+class StudentTrackingPPMPoint(BaseModel):
+    recording_id: str
+    recorded_at: datetime
+    words_per_minute: Optional[float] = None
+    accuracy: Optional[float] = None
+
+
+class StudentAttentionPoint(BaseModel):
+    severity: Literal["info", "warning", "error", "success"] = "info"
+    title: str
+    description: str
+
+
+class StudentInsightSummary(BaseModel):
+    id: str
+    title: str
+    type: str
+    priority: str
+    created_at: datetime
+
+
+class StudentTrackingResponse(BaseModel):
+    student_id: str
+    student_name: Optional[str] = None
+    total_recordings: int
+    completed_activities: int
+    average_accuracy: Optional[float] = None
+    average_wpm: Optional[float] = None
+    current_ppm: Optional[float] = None
+    ppm_change_percentage: Optional[float] = None
+    ppm_history: List[StudentTrackingPPMPoint]
+    attention_points: List[StudentAttentionPoint]
+    recent_insights: List[StudentInsightSummary]
+
+    class Config:
+        from_attributes = True
 
