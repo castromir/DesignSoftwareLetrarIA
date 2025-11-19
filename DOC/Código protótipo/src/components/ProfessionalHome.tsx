@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Settings,
   BookOpen,
@@ -78,8 +79,14 @@ export function ProfessionalHome({
   user,
   onLogout,
 }: ProfessionalHomeProps) {
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const professionalId = currentUser?.id;
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/login', { replace: true });
+  };
   
   const {
     students,
@@ -839,7 +846,7 @@ if (showTrail && selectedStudent) {
             {/* Ações */}
             <div className="flex items-center gap-2">
               <button
-                onClick={onLogout}
+                onClick={handleLogout}
                 className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                 title="Sair"
               >

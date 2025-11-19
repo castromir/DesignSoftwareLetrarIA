@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -26,6 +27,12 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/login', { replace: true });
+  };
   const {
     professionals,
     stats,
@@ -155,7 +162,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
               </Badge>
             </div>
             <button
-              onClick={onLogout}
+              onClick={handleLogout}
               className="h-8 px-2 sm:px-4 bg-white border border-[rgba(0,0,0,0.1)] rounded-lg text-[12px] sm:text-[14px] leading-5 hover:bg-gray-50 transition-colors flex items-center gap-1 sm:gap-2"
             >
               <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
