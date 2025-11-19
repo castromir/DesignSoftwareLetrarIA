@@ -27,7 +27,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="bg-white min-h-screen flex flex-col lg:flex-row relative">
+    <div className="bg-white min-h-screen flex flex-col lg:flex-row relative" role="main">
       {/* Lado esquerdo - Imagem de fundo com gradiente */}
       <div className="hidden lg:flex lg:w-[775.5px] relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800">
         <div className="absolute inset-0 opacity-30">
@@ -122,62 +122,66 @@ export function LoginPage() {
             </div>
 
             {/* Formulário */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3" role="alert">
                   <p className="text-sm text-red-800">{error}</p>
                 </div>
               )}
 
               {/* Campo Email */}
               <div className="space-y-2">
-                <label className="text-[14px] leading-[14px] text-neutral-950">
+                <label className="text-[14px] leading-[14px] text-neutral-950" htmlFor="email">
                   Email
                 </label>
                 <div className="relative">
-                  <div className="absolute left-[11px] top-[8px] w-5 h-5">
+                  <div className="absolute left-[11px] top-[8px] w-5 h-5 pointer-events-none" aria-hidden="true">
                     <img src={imgAccountMale} alt="" className="w-full h-full object-contain" />
                   </div>
                   <input
+                    id="email"
                     type="email"
                     placeholder="seu@email.com"
-                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    aria-label="Endereço de email"
                   />
                 </div>
               </div>
 
               {/* Campo Senha */}
               <div className="space-y-2">
-                <label className="text-[14px] leading-[14px] text-neutral-950">
+                <label className="text-[14px] leading-[14px] text-neutral-950" htmlFor="password">
                   Senha
                 </label>
                 <div className="relative">
-                  <svg className="absolute left-[12.75px] top-[10px] w-4 h-4" fill="none" viewBox="0 0 16 16">
-                    <path 
+                  <svg className="absolute left-[12.75px] top-[10px] w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 16 16" aria-hidden="true">
+                    <path
                       d={svgPaths.p18f7f580}
-                      stroke="#99A1AF" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth="1.33333" 
+                      stroke="#99A1AF"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.33333"
                     />
-                    <path 
+                    <path
                       d={svgPaths.p4317f80}
-                      stroke="#99A1AF" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth="1.33333" 
+                      stroke="#99A1AF"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.33333"
                     />
                   </svg>
                   <input
+                    id="password"
                     type="password"
                     placeholder="••••••••"
-                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    aria-label="Senha"
                   />
                 </div>
               </div>
@@ -185,13 +189,15 @@ export function LoginPage() {
               {/* Lembrar-me e Esqueceu a senha */}
               <div className="flex items-center justify-between px-2.5 h-6">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 rounded border-[0.5px] border-black" 
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    className="w-4 h-4 rounded border-[0.5px] border-black focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
+                    aria-label="Lembrar de mim"
                   />
                   <span className="text-[16px] leading-6 text-[#4a5565]">Lembrar de mim</span>
                 </label>
-                <a href="#" className="text-[14px] leading-5 text-[#155dfc]">
+                <a href="#" className="text-[14px] leading-5 text-[#155dfc] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1" aria-label="Esqueceu a senha">
                   Esqueceu a senha?
                 </a>
               </div>
@@ -200,7 +206,8 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading || authLoading}
-                className="w-full h-[42px] bg-[#030213] text-white rounded-lg text-[14px] leading-5 hover:bg-[#030213]/90 transition-colors disabled:opacity-50 text-center"
+                className="w-full h-[42px] bg-[#030213] text-white rounded-lg text-[14px] leading-5 hover:bg-[#030213]/90 transition-colors disabled:opacity-50 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
+                aria-label={isLoading || authLoading ? "Entrando..." : "Fazer login"}
               >
                 {(isLoading || authLoading) ? 'Entrando...' : 'Entrar'}
               </button>
