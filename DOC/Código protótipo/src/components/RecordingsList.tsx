@@ -638,7 +638,7 @@ export default function RecordingsList({
             Nenhuma gravação encontrada
           </div>
         ) : (
-          <div className="px-4 space-y-4 max-w-md mx-auto">
+          <div className="px-4 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
             {recordings.map((recording) => (
               <div key={recording.id}>
                 <RecordingCard
