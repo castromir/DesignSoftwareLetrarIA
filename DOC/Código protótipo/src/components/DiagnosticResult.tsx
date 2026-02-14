@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import jsPDF from 'jspdf';
 import {
   ChevronLeft,
   TrendingUp,
@@ -54,6 +55,201 @@ export default function DiagnosticResult({
 }: DiagnosticResultProps) {
   // Mock data baseado nas respostas do diagnóstico
   const overallScore = 78; // Calculado a partir das respostas
+
+  // Função para exportar relatório compacto em PDF
+  const handleExportReport = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    let yPosition = margin;
+
+    // Configurar cores
+    const primaryColor: [number, number, number] = [0, 86, 185];
+    const secondaryColor: [number, number, number] = [21, 93, 252];
+    const greenColor: [number, number, number] = [34, 197, 94];
+    const orangeColor: [number, number, number] = [249, 115, 22];
+
+    // Cabeçalho com gradiente simulado
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, pageWidth, 45, 'F');
+    
+    // Título
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.text('Relatório de Diagnóstico', margin, 20);
+    
+    // Subtítulo
+    doc.setFontSize(12);
+    doc.text('Avaliação Pedagógica Completa', margin, 30);
+    
+    // Data
+    doc.setFontSize(9);
+    doc.text('Data: 28 de Outubro, 2025', margin, 38);
+
+    yPosition = 55;
+
+    // Informações do Aluno
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.text('Informações do Aluno', margin, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(11);
+    doc.text(`Nome: ${student.name}`, margin + 5, yPosition);
+    yPosition += 6;
+    doc.text(`Idade: ${student.age} anos`, margin + 5, yPosition);
+    yPosition += 12;
+
+    // Pontuação Geral - Destaque
+    doc.setFillColor(240, 249, 255);
+    doc.roundedRect(margin, yPosition - 5, pageWidth - 2 * margin, 28, 3, 3, 'F');
+    
+    doc.setFontSize(14);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('Pontuação Geral', margin + 5, yPosition + 5);
+    
+    doc.setFontSize(32);
+    doc.text(`${overallScore}`, pageWidth - margin - 40, yPosition + 5);
+    doc.setFontSize(14);
+    doc.text('/100', pageWidth - margin - 15, yPosition + 5);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(34, 197, 94);
+    doc.text('Bom Desempenho', margin + 5, yPosition + 15);
+    
+    yPosition += 35;
+
+    // Resumo da Avaliação
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Resumo da Avaliação', margin, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(9);
+    const resumoText = 'O aluno demonstra um desempenho acima da média na maioria das habilidades avaliadas, com destaque especial para compreensão de texto e identificação de fonemas. Recomenda-se atenção ao desenvolvimento de vocabulário e expressividade.';
+    const resumoLines = doc.splitTextToSize(resumoText, pageWidth - 2 * margin - 10);
+    doc.text(resumoLines, margin + 5, yPosition);
+    yPosition += resumoLines.length * 5 + 10;
+
+    // Pontos Fortes
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Pontos Fortes', margin, yPosition);
+    yPosition += 8;
+
+    strengths.slice(0, 2).forEach((strength, index) => {
+      doc.setFillColor(240, 253, 244);
+      doc.roundedRect(margin, yPosition - 3, pageWidth - 2 * margin, 18, 2, 2, 'F');
+      
+      doc.setFontSize(11);
+      doc.setTextColor(greenColor[0], greenColor[1], greenColor[2]);
+      doc.text(`• ${strength.title}`, margin + 5, yPosition + 3);
+      
+      doc.setFontSize(8);
+      doc.setTextColor(60, 60, 60);
+      const descLines = doc.splitTextToSize(strength.description, pageWidth - 2 * margin - 35);
+      doc.text(descLines, margin + 8, yPosition + 9);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(greenColor[0], greenColor[1], greenColor[2]);
+      doc.text(`${strength.score}%`, pageWidth - margin - 20, yPosition + 3);
+      
+      yPosition += 22;
+    });
+
+    yPosition += 5;
+
+    // Áreas de Melhoria
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Áreas de Melhoria', margin, yPosition);
+    yPosition += 8;
+
+    weaknesses.slice(0, 2).forEach((weakness, index) => {
+      doc.setFillColor(255, 247, 237);
+      doc.roundedRect(margin, yPosition - 3, pageWidth - 2 * margin, 18, 2, 2, 'F');
+      
+      doc.setFontSize(11);
+      doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+      doc.text(`• ${weakness.title}`, margin + 5, yPosition + 3);
+      
+      doc.setFontSize(8);
+      doc.setTextColor(60, 60, 60);
+      const descLines = doc.splitTextToSize(weakness.description, pageWidth - 2 * margin - 35);
+      doc.text(descLines, margin + 8, yPosition + 9);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+      doc.text(`${weakness.score}%`, pageWidth - margin - 20, yPosition + 3);
+      
+      yPosition += 22;
+    });
+
+    // Verificar se precisa de nova página
+    if (yPosition > pageHeight - 60) {
+      doc.addPage();
+      yPosition = margin;
+    } else {
+      yPosition += 5;
+    }
+
+    // Recomendações Prioritárias
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Recomendações Prioritárias', margin, yPosition);
+    yPosition += 8;
+
+    const priorityRecs = aiRecommendations.filter(rec => rec.priority === 'alta').slice(0, 2);
+    priorityRecs.forEach((rec, index) => {
+      doc.setFillColor(254, 242, 242);
+      doc.roundedRect(margin, yPosition - 3, pageWidth - 2 * margin, 16, 2, 2, 'F');
+      
+      doc.setFontSize(10);
+      doc.setTextColor(220, 38, 38);
+      doc.text(`${index + 1}. ${rec.title}`, margin + 5, yPosition + 3);
+      
+      doc.setFontSize(8);
+      doc.setTextColor(60, 60, 60);
+      const recLines = doc.splitTextToSize(rec.description, pageWidth - 2 * margin - 10);
+      doc.text(recLines, margin + 8, yPosition + 9);
+      
+      yPosition += 20;
+    });
+
+    // Habilidades Avaliadas
+    yPosition += 5;
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Habilidades Avaliadas', margin, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(9);
+    skillsData.forEach((skill, index) => {
+      doc.setTextColor(60, 60, 60);
+      doc.text(`${skill.skill}:`, margin + 5, yPosition);
+      doc.text(`${skill.value}%`, margin + 60, yPosition);
+      
+      // Barra de progresso
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.rect(margin + 75, yPosition - 3, 80, 4);
+      
+      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.rect(margin + 75, yPosition - 3, (80 * skill.value) / 100, 4, 'F');
+      
+      yPosition += 8;
+    });
+
+    // Rodapé
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Gerado automaticamente pela plataforma LetrarIA', margin, pageHeight - 10);
+    doc.text(`Página 1 de 1`, pageWidth - margin - 20, pageHeight - 10);
+
+    // Salvar PDF
+    doc.save(`Relatorio_${student.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   // Dados para gráfico radar de habilidades
   const skillsData = [
@@ -568,7 +764,7 @@ export default function DiagnosticResult({
 
         {/* Action Buttons */}
         <div className="grid md:grid-cols-2 gap-4 mt-6 mb-6">
-          <button className="h-[56px] bg-white border-2 border-[#0056b9] text-[#0056b9] rounded-[12px] font-semibold hover:bg-blue-50 hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 group">
+          <button onClick={handleExportReport} className="h-[56px] bg-white border-2 border-[#0056b9] text-[#0056b9] rounded-[12px] font-semibold hover:bg-blue-50 hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 group">
             <BookOpen className="h-5 w-5 group-hover:scale-110 transition-transform" />
             <span>Exportar Relatório</span>
           </button>

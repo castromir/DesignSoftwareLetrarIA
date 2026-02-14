@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -9,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { BookOpen, LogOut, UserPlus, Shield, Trash2, Edit, X } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import { EditProfessionalDialog } from './EditProfessionalDialog';
+import { useProfessionals } from '../hooks/useProfessionals';
+import type { Professional } from '../types';
 import svgPaths from '../imports/svg-eh8lwci7vt';
 import imgAccountMale from 'figma:asset/6fc471d91da85fe4fda398eb3bf23ec06bafe9a5.png';
 
@@ -18,81 +21,58 @@ interface User {
   name: string;
 }
 
-interface Professional {
-  id: string;
-  name: string;
-  email: string;
-  username: string;
-  role: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
-
 interface AdminDashboardProps {
   user: User;
   onLogout: () => void;
 }
 
 export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
-  const [professionals, setProfessionals] = useState<Professional[]>([
-    {
-      id: '1',
-      name: 'Maria Silva',
-      email: 'maria.silva@letraria.com',
-      username: 'maria.silva',
-      role: 'Professora de Alfabetização',
-      status: 'active',
-      createdAt: '2025-01-14',
-    },
-    {
-      id: '2',
-      name: 'João Santos',
-      email: 'joao.santos@letraria.com',
-      username: 'joao.santos',
-      role: 'Coordenador Pedagógico',
-      status: 'active',
-      createdAt: '2025-01-09',
-    },
-    {
-      id: '3',
-      name: 'Ana Paula',
-      email: 'ana.paula@letraria.com',
-      username: 'ana.paula',
-      role: 'Professora de Reforço',
-      status: 'inactive',
-      createdAt: '2024-12-19',
-    },
-  ]);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/login', { replace: true });
+  };
+  const {
+    professionals,
+    stats,
+    loading,
+    error,
+    createProfessional,
+    updateProfessional,
+    deleteProfessional,
+  } = useProfessionals();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newProfessional, setNewProfessional] = useState({
     name: '',
+    email: '',
     username: '',
-    role: '',
+    function: '',
     password: '',
   });
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleAddProfessional = (e: React.FormEvent) => {
+  const handleAddProfessional = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const professional: Professional = {
-      id: Date.now().toString(),
-      name: newProfessional.name,
-      username: newProfessional.username,
-      email: `${newProfessional.username}@letraria.com`,
-      role: newProfessional.role,
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    setProfessionals([...professionals, professional]);
-    setNewProfessional({ name: '', username: '', role: '', password: '' });
-    setIsDialogOpen(false);
-    setSuccessMessage(`Profissional ${professional.name} cadastrado com sucesso!`);
-    setTimeout(() => setSuccessMessage(''), 3000);
+    try {
+      await createProfessional({
+        name: newProfessional.name,
+        email: newProfessional.email || `${newProfessional.username}@letraria.com`,
+        username: newProfessional.username,
+        function: newProfessional.function,
+        password: newProfessional.password,
+      });
+      setNewProfessional({ name: '', email: '', username: '', function: '', password: '' });
+      setIsDialogOpen(false);
+      setSuccessMessage('Profissional cadastrado com sucesso!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setSuccessMessage(error || 'Erro ao cadastrar profissional');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
   };
 
   const handleEditProfessional = (professional: Professional) => {
@@ -100,27 +80,50 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveEdit = (updatedProfessional: Professional) => {
-    setProfessionals(professionals.map(p => 
-      p.id === updatedProfessional.id ? updatedProfessional : p
-    ));
-    setSuccessMessage(`Profissional ${updatedProfessional.name} atualizado com sucesso!`);
-    setTimeout(() => setSuccessMessage(''), 3000);
+  const handleSaveEdit = async (updatedProfessional: Professional & { username?: string; password?: string }) => {
+    try {
+      setSuccessMessage('');
+      const updateData: {
+        name?: string;
+        email?: string;
+        function?: string;
+        username?: string;
+        password?: string;
+      } = {};
+      
+      if (updatedProfessional.name) updateData.name = updatedProfessional.name;
+      if (updatedProfessional.email) updateData.email = updatedProfessional.email;
+      if (updatedProfessional.function !== undefined) updateData.function = updatedProfessional.function;
+      if (updatedProfessional.username) updateData.username = updatedProfessional.username;
+      if (updatedProfessional.password) updateData.password = updatedProfessional.password;
+      
+      await updateProfessional(updatedProfessional.id, updateData);
+      setSuccessMessage('Profissional atualizado com sucesso!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setIsEditDialogOpen(false);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : (error || 'Erro ao atualizar profissional');
+      setSuccessMessage(errorMessage);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    }
   };
 
-  const handleDeleteProfessional = (id: string) => {
+  const handleDeleteProfessional = async (id: string) => {
     const prof = professionals.find(p => p.id === id);
-    setProfessionals(professionals.filter(p => p.id !== id));
-    setSuccessMessage(`Profissional ${prof?.name} removido com sucesso!`);
-    setTimeout(() => setSuccessMessage(''), 3000);
-  };
-
-  const toggleStatus = (id: string) => {
-    setProfessionals(professionals.map(p => 
-      p.id === id 
-        ? { ...p, status: p.status === 'active' ? 'inactive' as const : 'active' as const }
-        : p
-    ));
+    if (!prof) return;
+    
+    if (window.confirm(`Tem certeza que deseja remover o profissional ${prof.name}? Esta ação não pode ser desfeita.`)) {
+      try {
+        setSuccessMessage('');
+        await deleteProfessional(id);
+        setSuccessMessage(`Profissional ${prof.name} removido com sucesso!`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : (error || 'Erro ao remover profissional');
+        setSuccessMessage(errorMessage);
+        setTimeout(() => setSuccessMessage(''), 5000);
+      }
+    }
   };
 
   return (
@@ -159,7 +162,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
               </Badge>
             </div>
             <button
-              onClick={onLogout}
+              onClick={handleLogout}
               className="h-8 px-2 sm:px-4 bg-white border border-[rgba(0,0,0,0.1)] rounded-lg text-[12px] sm:text-[14px] leading-5 hover:bg-gray-50 transition-colors flex items-center gap-1 sm:gap-2"
             >
               <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -178,10 +181,18 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           </p>
         </div>
 
-        {successMessage && (
-          <Alert className="mb-6 bg-green-50 border-green-200">
-            <AlertDescription className="text-green-800">
-              {successMessage}
+        {(successMessage || error) && (
+          <Alert className={`mb-6 ${error ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+            <AlertDescription className={error ? 'text-red-800' : 'text-green-800'}>
+              {error || successMessage}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {loading && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <AlertDescription className="text-blue-800">
+              Carregando profissionais...
             </AlertDescription>
           </Alert>
         )}
@@ -191,14 +202,14 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           <Card className="border-[rgba(0,0,0,0.1)]">
             <CardHeader className="p-4 sm:p-6">
               <CardDescription className="text-[14px] sm:text-[16px] leading-5 sm:leading-6 text-[#717182]">Total de Profissionais</CardDescription>
-              <CardTitle className="text-[28px] sm:text-[36px] leading-8 sm:leading-10">{professionals.length}</CardTitle>
+              <CardTitle className="text-[28px] sm:text-[36px] leading-8 sm:leading-10">{stats.total}</CardTitle>
             </CardHeader>
           </Card>
           <Card className="border-[rgba(0,0,0,0.1)]">
             <CardHeader className="p-4 sm:p-6">
               <CardDescription className="text-[14px] sm:text-[16px] leading-5 sm:leading-6 text-[#717182]">Profissionais Ativos</CardDescription>
               <CardTitle className="text-[28px] sm:text-[36px] leading-8 sm:leading-10 text-[#00a63e]">
-                {professionals.filter(p => p.status === 'active').length}
+                {stats.active}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -206,7 +217,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
             <CardHeader className="p-4 sm:p-6">
               <CardDescription className="text-[14px] sm:text-[16px] leading-5 sm:leading-6 text-[#717182]">Profissionais Inativos</CardDescription>
               <CardTitle className="text-[28px] sm:text-[36px] leading-8 sm:leading-10 text-[#99a1af]">
-                {professionals.filter(p => p.status === 'inactive').length}
+                {stats.inactive}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -257,22 +268,17 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                       <TableRow key={professional.id} className="border-b border-[rgba(0,0,0,0.1)]">
                         <TableCell className="text-[14px] leading-5">{professional.name}</TableCell>
                         <TableCell className="text-[14px] leading-5">{professional.email}</TableCell>
-                        <TableCell className="text-[14px] leading-5">{professional.role}</TableCell>
+                        <TableCell className="text-[14px] leading-5">{professional.function || 'Não definida'}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={professional.status === 'active' ? 'default' : 'secondary'}
-                            className={`cursor-pointer h-[22px] text-[12px] leading-4 ${
-                              professional.status === 'active' 
-                                ? 'bg-[#030213] text-white' 
-                                : 'bg-[#eceef2] text-[#030213]'
-                            }`}
-                            onClick={() => toggleStatus(professional.id)}
+                            variant="default"
+                            className="h-[22px] text-[12px] leading-4 bg-[#030213] text-white"
                           >
-                            {professional.status === 'active' ? 'Ativo' : 'Inativo'}
+                            Ativo
                           </Badge>
                         </TableCell>
                         <TableCell className="text-[14px] leading-5">
-                          {new Date(professional.createdAt).toLocaleDateString('pt-BR')}
+                          {new Date(professional.created_at).toLocaleDateString('pt-BR')}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -310,23 +316,18 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                       <div className="flex-1">
                         <h4 className="text-[14px] mb-1">{professional.name}</h4>
                         <p className="text-[12px] text-[#717182] mb-2">{professional.email}</p>
-                        <p className="text-[12px] text-[#4a5565]">{professional.role}</p>
+                        <p className="text-[12px] text-[#4a5565]">{professional.function || 'Não definida'}</p>
                       </div>
                       <Badge
-                        variant={professional.status === 'active' ? 'default' : 'secondary'}
-                        className={`cursor-pointer h-[22px] text-[12px] leading-4 ${
-                          professional.status === 'active' 
-                            ? 'bg-[#030213] text-white' 
-                            : 'bg-[#eceef2] text-[#030213]'
-                        }`}
-                        onClick={() => toggleStatus(professional.id)}
+                        variant="default"
+                        className="h-[22px] text-[12px] leading-4 bg-[#030213] text-white"
                       >
-                        {professional.status === 'active' ? 'Ativo' : 'Inativo'}
+                        Ativo
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-[rgba(0,0,0,0.1)]">
                       <span className="text-[12px] text-[#717182]">
-                        {new Date(professional.createdAt).toLocaleDateString('pt-BR')}
+                        {new Date(professional.created_at).toLocaleDateString('pt-BR')}
                       </span>
                       <div className="flex gap-2">
                         <button
@@ -398,12 +399,32 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                       <img src={imgAccountMale} alt="" className="w-full h-full object-contain" />
                     </div>
                     <Input
+                      id="prof-email"
+                      type="email"
+                      placeholder="email@exemplo.com"
+                      className="h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 border-0 focus-visible:ring-2 focus-visible:ring-blue-500"
+                      value={newProfessional.email}
+                      onChange={(e) => setNewProfessional({ ...newProfessional, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Username */}
+                <div className="space-y-2">
+                  <Label htmlFor="prof-username" className="text-[16px] text-[#1e1e1e]">
+                    Username
+                  </Label>
+                  <div className="relative">
+                    <div className="absolute left-[11.9px] top-[8px] w-5 h-5">
+                      <img src={imgAccountMale} alt="" className="w-full h-full object-contain" />
+                    </div>
+                    <Input
                       id="prof-username"
                       placeholder="username"
                       className="h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 border-0 focus-visible:ring-2 focus-visible:ring-blue-500"
                       value={newProfessional.username}
                       onChange={(e) => setNewProfessional({ ...newProfessional, username: e.target.value })}
-                      required
                     />
                   </div>
                 </div>
@@ -426,10 +447,10 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
 
                 {/* Função/Cargo */}
                 <div className="space-y-2">
-                  <Label htmlFor="prof-role" className="text-[14px] text-neutral-950">
+                  <Label htmlFor="prof-function" className="text-[14px] text-neutral-950">
                     Função/Cargo
                   </Label>
-                  <Select value={newProfessional.role} onValueChange={(value) => setNewProfessional({ ...newProfessional, role: value })}>
+                  <Select value={newProfessional.function} onValueChange={(value) => setNewProfessional({ ...newProfessional, function: value })}>
                     <SelectTrigger className="h-9 bg-[#f3f3f5] rounded-lg border-0 focus:ring-2 focus:ring-blue-500">
                       <SelectValue placeholder="Pedagogo" />
                     </SelectTrigger>

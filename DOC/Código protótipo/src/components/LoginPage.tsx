@@ -1,30 +1,12 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import svgPaths from '../imports/svg-luvo32n1y5';
 import imgAccountMale from 'figma:asset/6fc471d91da85fe4fda398eb3bf23ec06bafe9a5.png';
 import imgImageWithFallback from 'figma:asset/188c677e9a5f499b73df2e014e7a30d6c55091cb.png';
 
-interface LoginPageProps {
-  onLogin: (user: { email: string; type: 'admin' | 'professional'; name: string }) => void;
-}
-
-// Credenciais mockadas para demonstração
-const MOCK_CREDENTIALS = {
-  admin: {
-    username: 'admin',
-    password: 'admin123',
-    name: 'Administrador',
-    type: 'admin' as const,
-  },
-  professional: {
-    username: 'maria.silva',
-    password: 'prof123',
-    name: 'Maria Silva',
-    type: 'professional' as const,
-  },
-};
-
-export function LoginPage({ onLogin }: LoginPageProps) {
-  const [username, setUsername] = useState('');
+export function LoginPage() {
+  const { login, isLoading: authLoading, error: authError } = useAuth();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,36 +16,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError('');
     setIsLoading(true);
 
-    // Simula delay de autenticação
-    setTimeout(() => {
-      // Verifica credenciais
-      if (
-        username === MOCK_CREDENTIALS.admin.username &&
-        password === MOCK_CREDENTIALS.admin.password
-      ) {
-        onLogin({
-          email: `${MOCK_CREDENTIALS.admin.username}@letraria.com`,
-          type: MOCK_CREDENTIALS.admin.type,
-          name: MOCK_CREDENTIALS.admin.name,
-        });
-      } else if (
-        username === MOCK_CREDENTIALS.professional.username &&
-        password === MOCK_CREDENTIALS.professional.password
-      ) {
-        onLogin({
-          email: `${MOCK_CREDENTIALS.professional.username}@letraria.com`,
-          type: MOCK_CREDENTIALS.professional.type,
-          name: MOCK_CREDENTIALS.professional.name,
-        });
-      } else {
-        setError('Credenciais inválidas. Verifique seu username e senha.');
-      }
+    try {
+      await login(email, password);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao fazer login';
+      setError(message || authError || 'Credenciais inválidas. Verifique seu email e senha.');
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (
-    <div className="bg-white min-h-screen flex flex-col lg:flex-row relative">
+    <div className="bg-white min-h-screen flex flex-col lg:flex-row relative" role="main">
       {/* Lado esquerdo - Imagem de fundo com gradiente */}
       <div className="hidden lg:flex lg:w-[775.5px] relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800">
         <div className="absolute inset-0 opacity-30">
@@ -158,62 +122,66 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
 
             {/* Formulário */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3" role="alert">
                   <p className="text-sm text-red-800">{error}</p>
                 </div>
               )}
 
-              {/* Campo Username */}
+              {/* Campo Email */}
               <div className="space-y-2">
-                <label className="text-[14px] leading-[14px] text-neutral-950">
-                  Username
+                <label className="text-[14px] leading-[14px] text-neutral-950" htmlFor="email">
+                  Email
                 </label>
                 <div className="relative">
-                  <div className="absolute left-[11px] top-[8px] w-5 h-5">
+                  <div className="absolute left-[11px] top-[8px] w-5 h-5 pointer-events-none" aria-hidden="true">
                     <img src={imgAccountMale} alt="" className="w-full h-full object-contain" />
                   </div>
                   <input
-                    type="text"
-                    placeholder="username"
-                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
+                    aria-label="Endereço de email"
                   />
                 </div>
               </div>
 
               {/* Campo Senha */}
               <div className="space-y-2">
-                <label className="text-[14px] leading-[14px] text-neutral-950">
+                <label className="text-[14px] leading-[14px] text-neutral-950" htmlFor="password">
                   Senha
                 </label>
                 <div className="relative">
-                  <svg className="absolute left-[12.75px] top-[10px] w-4 h-4" fill="none" viewBox="0 0 16 16">
-                    <path 
+                  <svg className="absolute left-[12.75px] top-[10px] w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 16 16" aria-hidden="true">
+                    <path
                       d={svgPaths.p18f7f580}
-                      stroke="#99A1AF" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth="1.33333" 
+                      stroke="#99A1AF"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.33333"
                     />
-                    <path 
+                    <path
                       d={svgPaths.p4317f80}
-                      stroke="#99A1AF" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth="1.33333" 
+                      stroke="#99A1AF"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.33333"
                     />
                   </svg>
                   <input
+                    id="password"
                     type="password"
                     placeholder="••••••••"
-                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-9 bg-[#f3f3f5] rounded-lg pl-10 pr-3 py-1 text-[14px] text-neutral-950 placeholder:text-[#717182] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    aria-label="Senha"
                   />
                 </div>
               </div>
@@ -221,13 +189,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               {/* Lembrar-me e Esqueceu a senha */}
               <div className="flex items-center justify-between px-2.5 h-6">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 rounded border-[0.5px] border-black" 
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    className="w-4 h-4 rounded border-[0.5px] border-black focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
+                    aria-label="Lembrar de mim"
                   />
                   <span className="text-[16px] leading-6 text-[#4a5565]">Lembrar de mim</span>
                 </label>
-                <a href="#" className="text-[14px] leading-5 text-[#155dfc]">
+                <a href="#" className="text-[14px] leading-5 text-[#155dfc] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1" aria-label="Esqueceu a senha">
                   Esqueceu a senha?
                 </a>
               </div>
@@ -235,22 +205,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               {/* Botão Entrar */}
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full h-[42px] bg-[#030213] text-white rounded-lg text-[14px] leading-5 hover:bg-[#030213]/90 transition-colors disabled:opacity-50 text-center"
+                disabled={isLoading || authLoading}
+                className="w-full h-[42px] bg-[#030213] text-white rounded-lg text-[14px] leading-5 hover:bg-[#030213]/90 transition-colors disabled:opacity-50 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus-visible:ring-2"
+                aria-label={isLoading || authLoading ? "Entrando..." : "Fazer login"}
               >
-                {isLoading ? 'Entrando...' : 'Entrar'}
+                {(isLoading || authLoading) ? 'Entrando...' : 'Entrar'}
               </button>
-
-              {/* Credenciais de teste */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm space-y-2">
-                <p className="text-blue-900">
-                  <strong>Credenciais para teste:</strong>
-                </p>
-                <div className="space-y-1 text-blue-700">
-                  <p>👤 Admin: admin / admin123</p>
-                  <p>👨‍🏫 Professor: maria.silva / prof123</p>
-                </div>
-              </div>
             </form>
           </div>
 

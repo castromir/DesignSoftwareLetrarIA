@@ -15,33 +15,14 @@ import {
 } from './ui/dialog';
 import { toast } from 'sonner@2.0.3';
 import { cn } from './ui/utils';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
-
-interface Activity {
-  id: number;
-  type: 'reading' | 'writing';
-  title: string;
-  description: string;
-  studentIds: number[];
-  scheduledDate?: Date;
-  scheduledTime?: string;
-  words?: string[];
-  difficulty: 'easy' | 'medium' | 'hard';
-  createdAt: Date;
-  status: 'pending' | 'in-progress' | 'completed';
-}
+import type { Activity, Student, ActivityUpdate } from '../types';
 
 interface EditActivityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   activity: Activity;
   students: Student[];
-  onSave: (activity: Activity) => void;
+  onSave: (activity: Activity) => Promise<void>;
 }
 
 export default function EditActivityDialog({ 
@@ -54,22 +35,24 @@ export default function EditActivityDialog({
   const [activityType, setActivityType] = useState<'reading' | 'writing'>(activity.type);
   const [title, setTitle] = useState(activity.title);
   const [description, setDescription] = useState(activity.description);
-  const [selectedStudents, setSelectedStudents] = useState<number[]>(activity.studentIds);
-  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(activity.scheduledDate);
-  const [scheduledTime, setScheduledTime] = useState(activity.scheduledTime || '');
-  const [words, setWords] = useState<string[]>(activity.words || ['']);
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(activity.difficulty);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>(activity.student_ids || []);
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(
+    activity.scheduled_date ? new Date(activity.scheduled_date) : undefined
+  );
+  const [scheduledTime, setScheduledTime] = useState(activity.scheduled_time || '');
+  const [words, setWords] = useState<string[]>(activity.words && activity.words.length > 0 ? activity.words : ['']);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(activity.difficulty || 'medium');
 
   useEffect(() => {
-    if (open) {
+    if (open && activity) {
       setActivityType(activity.type);
       setTitle(activity.title);
-      setDescription(activity.description);
-      setSelectedStudents(activity.studentIds);
-      setScheduledDate(activity.scheduledDate);
-      setScheduledTime(activity.scheduledTime || '');
-      setWords(activity.words || ['']);
-      setDifficulty(activity.difficulty);
+      setDescription(activity.description || '');
+      setSelectedStudents(activity.student_ids || []);
+      setScheduledDate(activity.scheduled_date ? new Date(activity.scheduled_date) : undefined);
+      setScheduledTime(activity.scheduled_time || '');
+      setWords(activity.words && activity.words.length > 0 ? activity.words : ['']);
+      setDifficulty(activity.difficulty || 'medium');
     }
   }, [open, activity]);
 
@@ -87,7 +70,7 @@ export default function EditActivityDialog({
     setWords(newWords);
   };
 
-  const toggleStudent = (studentId: number) => {
+  const toggleStudent = (studentId: string) => {
     setSelectedStudents(prev =>
       prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
@@ -95,7 +78,7 @@ export default function EditActivityDialog({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -116,18 +99,23 @@ export default function EditActivityDialog({
     const updatedActivity: Activity = {
       ...activity,
       type: activityType,
-      title,
-      description,
-      studentIds: selectedStudents,
-      scheduledDate,
-      scheduledTime,
-      words: words.filter(w => w.trim()),
-      difficulty,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      student_ids: selectedStudents,
+      scheduled_date: scheduledDate ? scheduledDate.toISOString().split('T')[0] : undefined,
+      scheduled_time: scheduledTime || undefined,
+      words: words.filter(w => w.trim()).length > 0 ? words.filter(w => w.trim()) : undefined,
+      difficulty: difficulty,
     };
 
-    onSave(updatedActivity);
-    toast.success('Atividade atualizada com sucesso!');
-    onOpenChange(false);
+    try {
+      await onSave(updatedActivity);
+      toast.success('Atividade atualizada com sucesso!');
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Erro ao atualizar atividade');
+      console.error('Error updating activity:', error);
+    }
   };
 
   return (
@@ -344,6 +332,7 @@ export default function EditActivityDialog({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-medium text-black truncate">{student.name}</p>
+                      <p className="text-[11px] text-black/60">{student.age || 0} anos</p>
                     </div>
                   </div>
                 </button>

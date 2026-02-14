@@ -1,5 +1,5 @@
+import React, { useState } from 'react';
 import { ChevronRight, X } from 'lucide-react';
-import { useState } from 'react';
 import svgPaths from '../imports/svg-ud1jof4hiy';
 import * as DialogPrimitive from '@radix-ui/react-dialog@1.1.6';
 import {
@@ -12,12 +12,8 @@ import {
 } from './ui/alert-dialog';
 import { cn } from './ui/utils';
 import EditStudentDialog from './EditStudentDialog';
-
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
+import type { Student } from '../types';
+import AiInsightsPanel from "./AiInsightsPanel";
 
 interface StudentProfileProps {
   student: Student | null;
@@ -27,8 +23,9 @@ interface StudentProfileProps {
   onViewProgress?: () => void;
   onViewTracking?: () => void;
   onViewDiagnostic?: () => void;
-  onEditStudent?: (student: Student) => void;
-  onDeleteStudent?: (studentId: number) => void;
+  onViewStudentActivities?: () => void;
+  onEditStudent?: (student: Student) => void | Promise<void>;
+  onDeleteStudent?: (studentId: string) => void | Promise<void>;
   onExportReports?: () => void;
 }
 
@@ -74,6 +71,7 @@ function ProfileContent({
   onViewProgress,
   onViewTracking,
   onViewDiagnostic,
+  onViewStudentActivities,
   onExportReports,
   onEditClick,
   onDeleteClick
@@ -83,17 +81,34 @@ function ProfileContent({
   onViewProgress?: () => void;
   onViewTracking?: () => void;
   onViewDiagnostic?: () => void;
+  onViewStudentActivities?: () => void;
   onExportReports?: () => void;
   onEditClick?: () => void;
   onDeleteClick?: () => void;
 }) {
+  // Calculate age from birth_date or use age field
+  const getStudentAge = (): number => {
+    if (student.age) return student.age;
+    if (student.birth_date) {
+      const birthDate = new Date(student.birth_date);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    }
+    return 0;
+  };
+
   return (
     <div className="flex flex-col">
       {/* Avatar and Name */}
       <div className="flex flex-col items-center pt-6 pb-6">
         <StudentAvatar />
         <h2 className="text-[16px] font-semibold text-black mt-4">{student.name}</h2>
-        <p className="text-[13px] text-black mt-1">{student.age} anos</p>
+        <p className="text-[13px] text-black mt-1">{getStudentAge()} anos</p>
       </div>
 
       {/* Menu Items */}
@@ -101,6 +116,7 @@ function ProfileContent({
         <ProfileMenuItem label="Ver trilha de leitura" onClick={onViewTrail} />
         <ProfileMenuItem label="Visualizar Progresso de leitura" onClick={onViewProgress} />
         <ProfileMenuItem label="Visualizar Rastreamento de progresso" onClick={onViewTracking} />
+        <ProfileMenuItem label="Atividades do aluno" onClick={onViewStudentActivities} />
         <ProfileMenuItem label="Ver Relatório de Diagnóstico" onClick={onViewDiagnostic} />
         <ProfileMenuItem label="Exportar informações" onClick={onExportReports} />
 
@@ -109,6 +125,12 @@ function ProfileContent({
 
         <ProfileMenuItem label="Editar informações do Perfil" onClick={onEditClick} />
         <ProfileMenuItem label="Deletar Perfil" danger onClick={onDeleteClick} />
+
+        {student.id && (
+          <div className="mt-6">
+            <AiInsightsPanel studentId={student.id} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -122,6 +144,7 @@ export default function StudentProfile({
   onViewProgress,
   onViewTracking,
   onViewDiagnostic,
+  onViewStudentActivities,
   onEditStudent,
   onDeleteStudent,
   onExportReports
@@ -144,17 +167,24 @@ export default function StudentProfile({
     }
   };
 
-  const handleConfirmDelete = () => {
-    if (student && onDeleteStudent) {
-      onDeleteStudent(student.id);
+  const handleStudentActivities = () => {
+    onOpenChange(false);
+    if (onViewStudentActivities) {
+      onViewStudentActivities();
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (student?.id && onDeleteStudent) {
+      await onDeleteStudent(student.id);
       setShowDeleteAlert(false);
       onOpenChange(false);
     }
   };
 
-  const handleSaveEdit = (updatedStudent: Student) => {
+  const handleSaveEdit = async (updatedStudent: Student) => {
     if (onEditStudent) {
-      onEditStudent(updatedStudent);
+      await onEditStudent(updatedStudent);
     }
   };
 
@@ -193,6 +223,7 @@ export default function StudentProfile({
                 onViewProgress={onViewProgress}
                 onViewTracking={onViewTracking}
                 onViewDiagnostic={onViewDiagnostic}
+                onViewStudentActivities={handleStudentActivities}
                 onExportReports={handleExport}
                 onEditClick={handleEdit}
                 onDeleteClick={handleDelete}

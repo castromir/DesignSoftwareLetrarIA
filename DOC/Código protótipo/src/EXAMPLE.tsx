@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 
-// ❌ EVITAR - Importações relativas longas
+//  EVITAR - Importações relativas longas
 // import { useAuth } from "../../hooks/useAuth";
 // import { formatDate } from "../../../utils/format";
 

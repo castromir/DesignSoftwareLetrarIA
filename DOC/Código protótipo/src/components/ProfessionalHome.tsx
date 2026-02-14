@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Settings,
   BookOpen,
@@ -38,6 +39,7 @@ import ActivitiesList from "./ActivitiesList";
 import ReportsAnalytics from "./ReportsAnalytics";
 import DiagnosticsList from "./DiagnosticsList";
 import TextReader from "./TextReader";
+import StudentActivitiesPanel from "./StudentActivitiesPanel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +48,11 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import { useStudents } from "../hooks/useStudents";
+import { useActivities } from "../hooks/useActivities";
+import { useAuth } from "../contexts/AuthContext";
+import type { Student as StudentType, Activity, ActivityCreate, ActivityUpdate } from "../types";
+import { Alert, AlertDescription } from "./ui/alert";
 
 interface User {
   email: string;
@@ -58,35 +65,7 @@ interface ProfessionalHomeProps {
   onLogout: () => void;
 }
 
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-  progress?: number;
-  needsAttention?: boolean;
-}
-
-interface Activity {
-  id: number;
-  title: string;
-  date: string;
-  completed: number;
-  total: number;
-}
-
-interface FullActivity {
-  id: number;
-  type: "reading" | "writing";
-  title: string;
-  description: string;
-  studentIds: number[];
-  scheduledDate?: Date;
-  scheduledTime?: string;
-  words?: string[];
-  difficulty: "easy" | "medium" | "hard";
-  createdAt: Date;
-  status: "pending" | "in-progress" | "completed";
-}
+// Using Student type from types/index.ts
 
 interface RecentReading {
   id: number;
@@ -100,22 +79,52 @@ export function ProfessionalHome({
   user,
   onLogout,
 }: ProfessionalHomeProps) {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const professionalId = currentUser?.id;
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/login', { replace: true });
+  };
+  
+  const {
+    students,
+    stats,
+    isLoading: studentsLoading,
+    error: studentsError,
+    createStudent,
+    updateStudent,
+    deleteStudent,
+  } = useStudents(professionalId);
+
+  const {
+    activities,
+    stats: activitiesStats,
+    isLoading: activitiesLoading,
+    error: activitiesError,
+    createActivity,
+    updateActivity,
+    deleteActivity,
+  } = useActivities(professionalId);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] =
-    useState<Student | null>(null);
+    useState<StudentType | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [showTrail, setShowTrail] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [showRecordings, setShowRecordings] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showStudentActivities, setShowStudentActivities] = useState(false);
   const [selectedStory, setSelectedStory] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [studentToEdit, setStudentToEdit] =
-    useState<Student | null>(null);
+    useState<StudentType | null>(null);
   const [studentToDelete, setStudentToDelete] =
-    useState<Student | null>(null);
+    useState<StudentType | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showCreateActivity, setShowCreateActivity] =
     useState(false);
@@ -132,81 +141,6 @@ export function ProfessionalHome({
     subtitle: string;
     content: string;
   } | null>(null);
-  const [fullActivities, setFullActivities] = useState<
-    FullActivity[]
-  >([
-    {
-      id: 1,
-      type: "reading",
-      title: "Leitura de palavras com R",
-      description:
-        "Prática de leitura focada em palavras que contêm a letra R em diferentes posições.",
-      studentIds: [1, 2, 3],
-      scheduledDate: new Date(2025, 9, 28),
-      scheduledTime: "14:00",
-      words: ["rato", "porta", "carro", "terra"],
-      difficulty: "medium",
-      createdAt: new Date(2025, 9, 26),
-      status: "pending",
-    },
-    {
-      id: 2,
-      type: "writing",
-      title: "Escrita criativa - Minha família",
-      description:
-        "Produção de texto descritivo sobre a família.",
-      studentIds: [4, 5],
-      scheduledDate: new Date(2025, 9, 29),
-      scheduledTime: "10:30",
-      difficulty: "easy",
-      createdAt: new Date(2025, 9, 25),
-      status: "in-progress",
-    },
-  ]);
-  const [students, setStudents] = useState<Student[]>([
-    {
-      id: 1,
-      name: "João Augusto",
-      age: 12,
-      progress: 85,
-      needsAttention: false,
-    },
-    {
-      id: 2,
-      name: "Ana Clara",
-      age: 11,
-      progress: 92,
-      needsAttention: false,
-    },
-    {
-      id: 3,
-      name: "Júlia",
-      age: 11,
-      progress: 45,
-      needsAttention: true,
-    },
-    {
-      id: 4,
-      name: "Manuela Oliveira",
-      age: 10,
-      progress: 78,
-      needsAttention: false,
-    },
-    {
-      id: 5,
-      name: "Pedro Santos",
-      age: 12,
-      progress: 38,
-      needsAttention: true,
-    },
-    {
-      id: 6,
-      name: "Beatriz Lima",
-      age: 11,
-      progress: 88,
-      needsAttention: false,
-    },
-  ]);
 
   const textLibrary = [
     {
@@ -361,29 +295,16 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     },
   ];
 
-  const activities: Activity[] = [
-    {
-      id: 1,
-      title: "Reconhecimento de Sílabas",
-      date: "2025-10-26",
-      completed: 14,
-      total: 19,
-    },
-    {
-      id: 2,
-      title: "Leitura de Palavras",
-      date: "2025-10-25",
-      completed: 19,
-      total: 19,
-    },
-    {
-      id: 3,
-      title: "Formação de Frases",
-      date: "2025-10-24",
-      completed: 12,
-      total: 19,
-    },
-  ];
+  const activitiesSummary = activities
+    .filter(a => a.status === 'in_progress')
+    .slice(0, 3)
+    .map(activity => ({
+      id: activity.id,
+      title: activity.title,
+      date: activity.scheduled_date || activity.created_at.split('T')[0],
+      completed: 0,
+      total: activity.student_ids?.length || 0,
+    }));
 
   const recentReadings: RecentReading[] = [
     {
@@ -415,11 +336,27 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
       .includes(searchQuery.toLowerCase()),
   );
 
+  // Calculate age from birth_date for display
+  const getStudentAge = (student: StudentType): number => {
+    if (student.age) return student.age;
+    if (student.birth_date) {
+      const birthDate = new Date(student.birth_date);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    }
+    return 0;
+  };
+
   const studentsNeedingAttention = students.filter(
-    (s) => s.needsAttention,
+    (s) => s.status === "inactive",
   );
 
-  const handleViewStudent = (student: Student) => {
+  const handleViewStudent = (student: StudentType) => {
     setSelectedStudent(student);
     setProfileOpen(true);
   };
@@ -438,6 +375,11 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setProfileOpen(false);
     setShowTracking(true);
   };
+
+const handleViewStudentActivities = () => {
+  setProfileOpen(false);
+  setShowStudentActivities(true);
+};
 
   const handleViewDiagnosticFromProfile = () => {
     setProfileOpen(false);
@@ -471,6 +413,11 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setProfileOpen(true);
   };
 
+const handleBackFromStudentActivities = () => {
+  setShowStudentActivities(false);
+  setProfileOpen(true);
+};
+
   const handleBackFromRecordings = () => {
     setShowRecordings(false);
     setShowTrail(true);
@@ -481,20 +428,36 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setProfileOpen(true);
   };
 
-  const handleEditStudent = (updatedStudent: Student) => {
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === updatedStudent.id ? updatedStudent : s,
-      ),
-    );
-    setSelectedStudent(updatedStudent);
+  const handleEditStudent = async (updatedStudent: StudentType) => {
+    if (!updatedStudent.id) return;
+    try {
+      await updateStudent(updatedStudent.id, {
+        name: updatedStudent.name,
+        age: updatedStudent.age,
+        birth_date: updatedStudent.birth_date,
+        gender: updatedStudent.gender,
+        registration: updatedStudent.registration,
+        observations: updatedStudent.observations,
+        status: updatedStudent.status,
+      });
+      const refreshed = students.find(s => s.id === updatedStudent.id);
+      if (refreshed) {
+        setSelectedStudent(refreshed);
+      }
+    } catch (error) {
+      console.error("Error updating student:", error);
+    }
   };
 
-  const handleDeleteStudent = (studentId: number) => {
-    setStudents((prev) =>
-      prev.filter((s) => s.id !== studentId),
-    );
-    setSelectedStudent(null);
+  const handleDeleteStudent = async (studentId: string) => {
+    try {
+      await deleteStudent(studentId);
+      if (selectedStudent?.id === studentId) {
+        setSelectedStudent(null);
+      }
+    } catch (error) {
+      console.error("Error deleting student:", error);
+    }
   };
 
   const handleViewExport = () => {
@@ -509,18 +472,22 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         students={students}
         selectedStudentId={selectedStudent.id}
         onStudentChange={(studentId) => {
-          const newStudent = students.find(s => s.id === studentId);
+          const newStudent = students.find((student) => student.id === studentId);
           if (newStudent) {
             setSelectedStudent(newStudent);
           }
         }}
         onBack={handleBackFromExport}
+        onReportCreated={() => {
+          setShowExport(false);
+          setShowReports(true);
+        }}
       />
     );
   }
 
   const handleEditFromList = (
-    student: Student,
+    student: StudentType,
     e: React.MouseEvent,
   ) => {
     e.stopPropagation();
@@ -529,7 +496,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   };
 
   const handleDeleteFromList = (
-    student: Student,
+    student: StudentType,
     e: React.MouseEvent,
   ) => {
     e.stopPropagation();
@@ -537,46 +504,84 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setShowDeleteAlert(true);
   };
 
-  const handleConfirmDeleteFromList = () => {
-    if (studentToDelete) {
-      setStudents((prev) =>
-        prev.filter((s) => s.id !== studentToDelete.id),
-      );
-      setStudentToDelete(null);
-      setShowDeleteAlert(false);
+  const handleConfirmDeleteFromList = async () => {
+    if (studentToDelete?.id) {
+      try {
+        await deleteStudent(studentToDelete.id);
+        setStudentToDelete(null);
+        setShowDeleteAlert(false);
+      } catch (error) {
+        console.error("Error deleting student:", error);
+      }
     }
   };
 
-  const handleSaveEditFromList = (updatedStudent: Student) => {
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === updatedStudent.id ? updatedStudent : s,
-      ),
-    );
+  const handleSaveEditFromList = async (updatedStudent: StudentType) => {
+    if (!updatedStudent.id) return;
+    try {
+      await updateStudent(updatedStudent.id, {
+        name: updatedStudent.name,
+        age: updatedStudent.age,
+        birth_date: updatedStudent.birth_date,
+        gender: updatedStudent.gender,
+        registration: updatedStudent.registration,
+        observations: updatedStudent.observations,
+        status: updatedStudent.status,
+      });
+      setShowEditDialog(false);
+    } catch (error) {
+      console.error("Error updating student:", error);
+    }
   };
 
-  const handleAddStudent = (newStudentData: {
+  const handleAddStudent = async (newStudentData: {
     name: string;
     registration: string;
     gender: string;
     birthDate: string;
     observations: string;
   }) => {
-    const birthYear = newStudentData.birthDate
-      ? new Date(newStudentData.birthDate).getFullYear()
-      : new Date().getFullYear() - 10;
-    const currentYear = new Date().getFullYear();
-    const age = currentYear - birthYear;
+    if (!professionalId) {
+      alert("Erro: ID do profissional não encontrado");
+      return;
+    }
 
-    const newStudent: Student = {
-      id: Math.max(...students.map((s) => s.id), 0) + 1,
-      name: newStudentData.name,
-      age: age > 0 ? age : 10,
-      progress: 0,
-      needsAttention: false,
-    };
+    try {
+      // Calculate age from birth date
+      let age: number | undefined;
+      if (newStudentData.birthDate) {
+        const birthDate = new Date(newStudentData.birthDate);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+      }
 
-    setStudents((prev) => [...prev, newStudent]);
+      // Map gender to backend format
+      const genderMap: Record<string, "male" | "female" | "other" | undefined> = {
+        "masculino": "male",
+        "feminino": "female",
+        "outro": "other",
+        "preferir-nao-informar": undefined,
+      };
+
+      await createStudent({
+        name: newStudentData.name,
+        professional_id: professionalId,
+        registration: newStudentData.registration || undefined,
+        gender: genderMap[newStudentData.gender],
+        birth_date: newStudentData.birthDate || undefined,
+        age: age,
+        observations: newStudentData.observations || undefined,
+        status: "active",
+      });
+      setShowAddDialog(false);
+    } catch (error) {
+      console.error("Error creating student:", error);
+      alert("Erro ao cadastrar aluno. Tente novamente.");
+    }
   };
 
   const handlePrintAllTexts = () => {
@@ -650,48 +655,68 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setShowRecordings(false);
     setShowTracking(false);
     setShowExport(false);
+    setShowStudentActivities(false);
     setShowCreateActivity(false);
     setShowActivitiesList(false);
     setSelectedStudent(null);
     setSelectedStory(null);
   };
 
-  const handleCreateActivity = (activity: FullActivity) => {
-    setFullActivities((prev) => [...prev, activity]);
+  const handleCreateActivity = async (activityData: ActivityCreate) => {
+    try {
+      await createActivity(activityData);
+    } catch (error) {
+      console.error("Error creating activity:", error);
+      throw error;
+    }
   };
 
-  const handleDeleteActivity = (id: number) => {
-    setFullActivities((prev) =>
-      prev.filter((a) => a.id !== id),
-    );
+  const handleDeleteActivity = async (id: string) => {
+    try {
+      await deleteActivity(id);
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      throw error;
+    }
   };
 
-  const handleUpdateActivity = (
-    updatedActivity: FullActivity,
-  ) => {
-    setFullActivities((prev) =>
-      prev.map((a) =>
-        a.id === updatedActivity.id ? updatedActivity : a,
-      ),
-    );
+  const handleUpdateActivity = async (updatedActivity: Activity) => {
+    try {
+      const updateData: ActivityUpdate = {
+        title: updatedActivity.title,
+        description: updatedActivity.description,
+        type: updatedActivity.type,
+        difficulty: updatedActivity.difficulty,
+        scheduled_date: updatedActivity.scheduled_date,
+        scheduled_time: updatedActivity.scheduled_time,
+        words: updatedActivity.words,
+        status: updatedActivity.status,
+        student_ids: updatedActivity.student_ids,
+      };
+      await updateActivity(updatedActivity.id, updateData);
+    } catch (error) {
+      console.error("Error updating activity:", error);
+      throw error;
+    }
   };
 
   // Show Recordings List fullscreen
-  if (showRecordings && selectedStudent && selectedStory) {
+if (showRecordings && selectedStudent && selectedStory) {
     return (
       <RecordingsList
-        student={selectedStudent}
-        storyTitle={selectedStory.title}
+      student={selectedStudent}
+        storyId={selectedStory.id || selectedStory.storyId || ""}
+        storyTitle={selectedStory.title || selectedStory.storyTitle || ""}
         onBack={handleBackFromRecordings}
       />
     );
   }
 
   // Show Reading Progress fullscreen
-  if (showProgress && selectedStudent) {
+if (showProgress && selectedStudent) {
     return (
       <ReadingProgress
-        student={selectedStudent}
+      student={selectedStudent}
         onBack={handleBackFromProgress}
         onViewRecordings={handleViewRecordings}
       />
@@ -699,20 +724,29 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
   }
 
   // Show Student Tracking fullscreen
-  if (showTracking && selectedStudent) {
+if (showTracking && selectedStudent) {
     return (
       <StudentTracking
-        student={selectedStudent}
+      student={selectedStudent}
         onBack={handleBackFromTracking}
       />
     );
   }
 
+if (showStudentActivities && selectedStudent) {
+  return (
+    <StudentActivitiesPanel
+      student={selectedStudent}
+      onBack={handleBackFromStudentActivities}
+    />
+  );
+}
+
   // Show Reading Trail fullscreen
-  if (showTrail && selectedStudent) {
+if (showTrail && selectedStudent) {
     return (
       <ReadingTrail
-        student={selectedStudent}
+      student={selectedStudent}
         onBack={handleBackFromTrail}
         onViewRecordings={handleViewRecordingsFromTrail}
       />
@@ -741,8 +775,9 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     return (
       <ActivitiesList
         onBack={() => setShowActivitiesList(false)}
-        activities={fullActivities}
+        activities={activities}
         students={students}
+        stats={activitiesStats}
         onDeleteActivity={handleDeleteActivity}
         onUpdateActivity={handleUpdateActivity}
         onCreateActivity={() => {
@@ -811,7 +846,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
             {/* Ações */}
             <div className="flex items-center gap-2">
               <button
-                onClick={onLogout}
+                onClick={handleLogout}
                 className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                 title="Sair"
               >
@@ -822,8 +857,42 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         </div>
       </header>
 
-      {/* Main Content */}
+        {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
+        {/* Error Alerts */}
+        {studentsError && (
+          <Alert className="mb-6 bg-red-50 border-red-200">
+            <AlertDescription className="text-red-800">
+              {studentsError}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {activitiesError && (
+          <Alert className="mb-6 bg-red-50 border-red-200">
+            <AlertDescription className="text-red-800">
+              {activitiesError}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Loading Alerts */}
+        {studentsLoading && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <AlertDescription className="text-blue-800">
+              Carregando alunos...
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {activitiesLoading && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <AlertDescription className="text-blue-800">
+              Carregando atividades...
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Page Title - Desktop */}
         <h2 className="hidden lg:block text-[20px] font-semibold text-black mb-6">
           Visão geral
@@ -899,7 +968,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                     Alunos ativos
                   </p>
                   <p className="text-[24px] font-semibold text-[#0056b9]">
-                    19
+                    {stats.active}
                   </p>
                 </div>
               </div>
@@ -1046,41 +1115,47 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                 Atividades em andamento
               </h3>
               <div className="bg-white rounded-[10px] border border-black/12 p-4">
-                <div className="space-y-3">
-                  {activities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="pb-3 border-b border-black/8 last:border-0 last:pb-0"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-start gap-2 flex-1">
-                          <FileText className="h-4 w-4 text-[#0056b9] flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-[14px] font-medium text-black truncate">
-                              {activity.title}
-                            </h4>
-                            <p className="text-[12px] text-black/60">
-                              {new Date(
-                                activity.date,
-                              ).toLocaleDateString("pt-BR")}
-                            </p>
+                {activitiesSummary.length === 0 ? (
+                  <div className="text-center py-8 text-black/60 text-[14px]">
+                    Nenhuma atividade em andamento
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activitiesSummary.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className="pb-3 border-b border-black/8 last:border-0 last:pb-0"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-start gap-2 flex-1">
+                            <FileText className="h-4 w-4 text-[#0056b9] flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-[14px] font-medium text-black truncate">
+                                {activity.title}
+                              </h4>
+                              <p className="text-[12px] text-black/60">
+                                {new Date(
+                                  activity.date,
+                                ).toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
                           </div>
+                          <span className="text-[13px] text-[#0056b9] font-medium">
+                            {activity.completed}/{activity.total}
+                          </span>
                         </div>
-                        <span className="text-[13px] text-[#0056b9] font-medium">
-                          {activity.completed}/{activity.total}
-                        </span>
+                        <Progress
+                          value={
+                            activity.total > 0
+                              ? (activity.completed / activity.total) * 100
+                              : 0
+                          }
+                          className="h-2"
+                        />
                       </div>
-                      <Progress
-                        value={
-                          (activity.completed /
-                            activity.total) *
-                          100
-                        }
-                        className="h-2"
-                      />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   className="w-full mt-4 text-[13px] h-9"
@@ -1121,16 +1196,8 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                                 {student.name}
                               </span>
                               <span className="text-[12px] text-amber-700 font-medium">
-                                {student.progress}%
+                                Inativo
                               </span>
-                            </div>
-                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-amber-500"
-                                style={{
-                                  width: `${student.progress}%`,
-                                }}
-                              />
                             </div>
                           </div>
                         ),
@@ -1253,7 +1320,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
                     {student.name}
                   </p>
                   <p className="text-[12px] text-black/60">
-                    {student.age} anos
+                    {getStudentAge(student)} anos
                   </p>
                 </div>
 
@@ -1316,6 +1383,7 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
         onViewProgress={handleViewProgress}
         onViewTracking={handleViewTracking}
         onViewDiagnostic={handleViewDiagnosticFromProfile}
+        onViewStudentActivities={handleViewStudentActivities}
         onEditStudent={handleEditStudent}
         onDeleteStudent={handleDeleteStudent}
         onExportReports={handleViewExport}
