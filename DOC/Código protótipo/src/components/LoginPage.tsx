@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { getAuthData } from '../services/api';
 import svgPaths from '../imports/svg-luvo32n1y5';
 import imgAccountMale from 'figma:asset/6fc471d91da85fe4fda398eb3bf23ec06bafe9a5.png';
 import imgImageWithFallback from 'figma:asset/188c677e9a5f499b73df2e014e7a30d6c55091cb.png';
 
 export function LoginPage() {
   const { login, isLoading: authLoading, error: authError } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,6 +21,12 @@ export function LoginPage() {
 
     try {
       await login(email, password);
+      const { user } = getAuthData();
+      if (user && user.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (user && user.role === 'professional') {
+        navigate('/professional', { replace: true });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login';
       setError(message || authError || 'Credenciais inválidas. Verifique seu email e senha.');
