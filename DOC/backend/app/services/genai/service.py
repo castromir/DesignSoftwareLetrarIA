@@ -170,6 +170,7 @@ class GeminiService:
 
         config = self.model_config.copy()
         model_id = model or config.pop("model", "models/gemini-2.5-flash")
+        config.pop("location", None)
         if not model_id.startswith("models/"):
             model_id = f"models/{model_id}"
 
@@ -278,6 +279,7 @@ class GeminiService:
 
         config = self.model_config.copy()
         model_id = config.pop("model", "models/gemini-2.5-flash")
+        config.pop("location", None)
         if not model_id.startswith("models/"):
             model_id = f"models/{model_id}"
 

@@ -64,5 +64,13 @@
       host: '0.0.0.0',
       port: 5173,
       strictPort: true,
+      allowedHosts: true,
+      proxy: {
+        '/api-proxy': {
+          target: process.env.BACKEND_INTERNAL_URL || 'http://backend:8000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api-proxy/, ''),
+        },
+      },
     },
   });

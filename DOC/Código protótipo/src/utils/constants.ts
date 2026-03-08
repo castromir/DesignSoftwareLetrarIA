@@ -69,8 +69,10 @@ export const LIMITS = {
   MAX_PASSWORD_LENGTH: 128,
 } as const;
 
-// URLs de API (configure conforme necessário)
-export const API_BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8888";
+// URLs de API
+// Usa proxy do Vite (/api-proxy → backend interno Docker) para evitar
+// Mixed Content e CORS em qualquer ambiente (local ou túnel HTTPS).
+export const API_BASE_URL = "/api-proxy";
 
 export const API_ENDPOINTS = {
   AUTH: {

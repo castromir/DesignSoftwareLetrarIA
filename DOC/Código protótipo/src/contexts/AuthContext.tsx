@@ -6,7 +6,7 @@ interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ role: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ role: string }> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updatedAt: new Date(),
       };
       setCurrentUser(user);
+      return { role: response.user.role };
     } catch (err) {
       const message =
         err instanceof Error
