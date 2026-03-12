@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.recording_service import RecordingService
 from app.schemas.recording import (
@@ -134,47 +134,39 @@ async def get_recording_audio(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Retorna o arquivo de áudio da gravação."""
+    """Retorna o arquivo de áudio da gravação (MinIO ou filesystem)."""
     service = RecordingService(db)
     recording = await service.get_recording_by_id(recording_id)
-    
+
     if not recording:
-        print(f"[Recording Audio] Gravação não encontrada: {recording_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Gravação não encontrada"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Gravação não encontrada")
+
     if not recording.audio_file_path:
-        print(f"[Recording Audio] Gravação sem caminho de arquivo: {recording_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Arquivo de áudio não encontrado"
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo de áudio não encontrado")
+
+    # Tentar MinIO primeiro
+    minio_result = await service.get_audio_stream(recording.audio_file_path)
+    if minio_result is not None:
+        response, content_type = minio_result
+        return StreamingResponse(
+            response.stream(32 * 1024),
+            media_type=content_type,
+            headers={"Content-Disposition": f"inline; filename={Path(recording.audio_file_path).name}"},
         )
-    
-    # Caminho completo do arquivo (usar caminho absoluto)
-    import os
+
+    # Fallback: filesystem
     base_path = Path(os.getcwd())
     file_path = base_path / "uploads" / recording.audio_file_path
-    
-    print(f"[Recording Audio] CWD: {os.getcwd()}")
-    print(f"[Recording Audio] Procurando arquivo em: {file_path}")
-    print(f"[Recording Audio] Arquivo existe: {file_path.exists()}")
-    
     if not file_path.exists():
-        # Tentar caminho relativo também
         alt_path = Path("uploads") / recording.audio_file_path
-        print(f"[Recording Audio] Tentando caminho alternativo: {alt_path}")
         if alt_path.exists():
             file_path = alt_path
         else:
-            print(f"[Recording Audio] Arquivo não encontrado no servidor: {file_path}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Arquivo de áudio não encontrado no servidor"
+                detail="Arquivo de áudio não encontrado no servidor",
             )
-    
-    # Determinar content type baseado na extensão
+
     content_type = "audio/webm"
     if file_path.suffix == ".mp3":
         content_type = "audio/mpeg"
@@ -184,14 +176,8 @@ async def get_recording_audio(
         content_type = "audio/mp4"
     elif file_path.suffix == ".ogg":
         content_type = "audio/ogg"
-    
-    print(f"[Recording Audio] Retornando arquivo: {file_path}, tipo: {content_type}, tamanho: {file_path.stat().st_size if file_path.exists() else 0} bytes")
-    
-    return FileResponse(
-        path=str(file_path.absolute()),
-        media_type=content_type,
-        filename=file_path.name,
-    )
+
+    return FileResponse(path=str(file_path.absolute()), media_type=content_type, filename=file_path.name)
 
 
 @router.put("/{recording_id}", response_model=RecordingResponse)

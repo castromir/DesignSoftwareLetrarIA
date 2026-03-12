@@ -393,7 +393,7 @@ export const authApi = {
 
 export const professionalsApi = {
   async list() {
-    return api.get<ProfessionalListResponse>("/professionals");
+    return api.get<ProfessionalListResponse>("/professionals/");
   },
 
   async getById(id: string) {
@@ -401,7 +401,7 @@ export const professionalsApi = {
   },
 
   async create(data: ProfessionalCreate) {
-    return api.post<Professional>("/professionals", data);
+    return api.post<Professional>("/professionals/", data);
   },
 
   async update(id: string, data: ProfessionalUpdate) {
@@ -417,7 +417,7 @@ export const studentsApi = {
   async list(professionalId?: string) {
     const params = professionalId ? { professional_id: professionalId } : {};
     const queryString = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : "";
-    return api.get<StudentListResponse>(`/students${queryString}`);
+    return api.get<StudentListResponse>(`/students/${queryString}`);
   },
 
   async getById(id: string) {
@@ -429,7 +429,7 @@ export const studentsApi = {
   },
 
   async create(data: StudentCreate) {
-    return api.post<Student>("/students", data);
+    return api.post<Student>("/students/", data);
   },
 
   async update(id: string, data: StudentUpdate) {
@@ -449,7 +449,7 @@ export const activitiesApi = {
     const queryString = Object.keys(params).length > 0
       ? `?${new URLSearchParams(params).toString()}`
       : "";
-    return api.get<ActivityListResponse>(`/activities${queryString}`);
+    return api.get<ActivityListResponse>(`/activities/${queryString}`);
   },
 
   async getById(id: string) {
@@ -457,7 +457,7 @@ export const activitiesApi = {
   },
 
   async create(data: ActivityCreate) {
-    return api.post<Activity>("/activities", data);
+    return api.post<Activity>("/activities/", data);
   },
 
   async update(id: string, data: ActivityUpdate) {
@@ -567,7 +567,7 @@ export const aiInsightsApi = {
 
     const query = queryParams.toString();
     return api.get<AIInsightListResponse>(
-      `/ai_insights${query ? `?${query}` : ""}`
+      `/ai_insights/${query ? `?${query}` : ""}`
     );
   },
 
@@ -614,7 +614,7 @@ export const diagnosticsApi = {
     }
     const query = queryParams.toString();
     return api.get<DiagnosticListResponse>(
-      `/diagnostics${query ? `?${query}` : ""}`
+      `/diagnostics/${query ? `?${query}` : ""}`
     );
   },
 
@@ -657,7 +657,7 @@ export const reportsApi = {
     if (typeof params?.skip === "number") queryParams.append("skip", String(params.skip));
     if (typeof params?.limit === "number") queryParams.append("limit", String(params.limit));
     const query = queryParams.toString();
-    return api.get<ReportListResponse>(`/reports${query ? `?${query}` : ""}`);
+    return api.get<ReportListResponse>(`/reports/${query ? `?${query}` : ""}`);
   },
 
   async get(reportId: string): Promise<Report> {
@@ -692,7 +692,7 @@ export const studentActivitiesApi = {
     if (typeof params?.skip === "number") queryParams.append("skip", String(params.skip));
     if (typeof params?.limit === "number") queryParams.append("limit", String(params.limit));
     const query = queryParams.toString();
-    return api.get<StudentActivityListResponse>(`/student_activities${query ? `?${query}` : ""}`);
+    return api.get<StudentActivityListResponse>(`/student_activities/${query ? `?${query}` : ""}`);
   },
 
   async get(studentActivityId: string): Promise<StudentActivity> {
@@ -730,7 +730,7 @@ export const textLibraryApi = {
     const queryString = Object.keys(queryParams).length > 0
       ? `?${new URLSearchParams(queryParams).toString()}`
       : "";
-    return api.get<TextLibraryListResponse>(`/text-library${queryString}`);
+    return api.get<TextLibraryListResponse>(`/text-library/${queryString}`);
   },
 
   async getById(id: string) {
@@ -738,7 +738,7 @@ export const textLibraryApi = {
   },
 
   async create(data: TextLibraryCreate) {
-    return api.post<TextLibrary>("/text-library", data);
+    return api.post<TextLibrary>("/text-library/", data);
   },
 
   async update(id: string, data: TextLibraryUpdate) {
@@ -766,7 +766,7 @@ export const trailsApi = {
     const queryString = Object.keys(queryParams).length > 0
       ? `?${new URLSearchParams(queryParams).toString()}`
       : "";
-    return api.get<TrailListResponse>(`/trails${queryString}`);
+    return api.get<TrailListResponse>(`/trails/${queryString}`);
   },
 
   async getById(id: string) {
@@ -774,7 +774,7 @@ export const trailsApi = {
   },
 
   async create(data: TrailCreate) {
-    return api.post<Trail>("/trails", data);
+    return api.post<Trail>("/trails/", data);
   },
 
   async update(id: string, data: TrailUpdate) {

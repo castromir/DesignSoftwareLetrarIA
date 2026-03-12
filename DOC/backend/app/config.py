@@ -16,12 +16,18 @@ class Settings(BaseSettings):
     
     google_client_id: str | None = None
     google_client_secret: str | None = None
-    
+
     whisper_model_size: str = "base"
     openai_api_key: str | None = None  # Mantido para compatibilidade, mas não usado mais
     google_genai_api_key: str | None = None
     google_genai_model: str = "gemini-1.5-flash"
     google_genai_location: str | None = None
+
+    minio_endpoint: str | None = None
+    minio_access_key: str = "minioadmin"
+    minio_secret_key: str = "minioadmin"
+    minio_bucket: str = "letraria-recordings"
+    minio_use_ssl: bool = False
     
     model_config = SettingsConfigDict(
         env_file=".env",

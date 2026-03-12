@@ -20,7 +20,8 @@ from app.api.routes import (
 app = FastAPI(
     title="Letrar IA API",
     description="API da plataforma Letrar IA para alfabetização inteligente",
-    version="1.0.0"
+    version="1.0.0",
+    redirect_slashes=False,
 )
 
 app.add_middleware(

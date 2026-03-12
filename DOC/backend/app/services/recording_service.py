@@ -22,20 +22,51 @@ from app.models.student import Student
 from app.models.trail import TrailStory
 from app.services.genai.service import GeminiService, GeminiServiceError
 from app.services.reading_analysis import analyze_reading
+from app.config import settings
 
 
 logger = logging.getLogger(__name__)
+
+
+def _content_type_for(filename: str) -> str:
+    ext = Path(filename).suffix.lower()
+    return {
+        ".mp3": "audio/mpeg",
+        ".wav": "audio/wav",
+        ".m4a": "audio/mp4",
+        ".ogg": "audio/ogg",
+    }.get(ext, "audio/webm")
+
 
 class RecordingService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.recording_repository = RecordingRepository(session)
         self.ai_insight_repository = AIInsightRepository(session)
-        self.uploads_dir = Path("uploads/recordings")
-        try:
-            self.uploads_dir.mkdir(parents=True, exist_ok=True)
-        except PermissionError:
-            logger.warning("Sem permissão para criar diretório de gravações; utilizando caminho existente.")
+
+        # MinIO client (quando configurado)
+        self._minio_client = None
+        if settings.minio_endpoint:
+            try:
+                from minio import Minio
+                self._minio_client = Minio(
+                    settings.minio_endpoint,
+                    access_key=settings.minio_access_key,
+                    secret_key=settings.minio_secret_key,
+                    secure=settings.minio_use_ssl,
+                )
+                logger.info("MinIO configurado: endpoint=%s bucket=%s", settings.minio_endpoint, settings.minio_bucket)
+            except Exception:
+                logger.exception("Falha ao inicializar cliente MinIO; usando filesystem.")
+                self._minio_client = None
+
+        # Diretório local (fallback quando MinIO não está configurado)
+        if not self._minio_client:
+            self.uploads_dir = Path("uploads/recordings")
+            try:
+                self.uploads_dir.mkdir(parents=True, exist_ok=True)
+            except PermissionError:
+                logger.warning("Sem permissão para criar diretório de gravações; utilizando caminho existente.")
 
     async def create_recording(
         self,
@@ -248,26 +279,86 @@ class RecordingService:
         story_id: str,
         file_extension: str = ".webm",
     ) -> str:
-        """Salva o arquivo de áudio e retorna o caminho relativo."""
+        """Salva o arquivo de áudio no MinIO (se configurado) ou no filesystem.
+        Retorna a chave do objeto MinIO ou o caminho relativo no filesystem."""
+        import time
         student_uuid = uuid.UUID(student_id)
         story_uuid = uuid.UUID(story_id)
-        
-        # Criar estrutura de diretórios: uploads/recordings/{student_id}/{story_id}/
-        student_dir = self.uploads_dir / str(student_uuid) / str(story_uuid)
-        student_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Gerar nome único para o arquivo
-        import time
         timestamp = int(time.time() * 1000)
         filename = f"recording_{timestamp}{file_extension}"
+
+        if self._minio_client:
+            return await self._save_to_minio(audio_bytes, str(student_uuid), str(story_uuid), filename)
+        return await self._save_to_filesystem(audio_bytes, student_uuid, story_uuid, filename)
+
+    async def _save_to_minio(
+        self,
+        audio_bytes: bytes,
+        student_id: str,
+        story_id: str,
+        filename: str,
+    ) -> str:
+        """Faz upload do áudio para o MinIO e retorna a chave do objeto."""
+        import asyncio
+        import io as _io
+
+        object_key = f"{student_id}/{story_id}/{filename}"
+        data = _io.BytesIO(audio_bytes)
+        content_type = _content_type_for(filename)
+
+        def _upload():
+            self._minio_client.put_object(
+                settings.minio_bucket,
+                object_key,
+                data,
+                length=len(audio_bytes),
+                content_type=content_type,
+            )
+
+        try:
+            await asyncio.to_thread(_upload)
+            logger.info("Áudio salvo no MinIO: %s/%s", settings.minio_bucket, object_key)
+            return object_key
+        except Exception:
+            logger.exception("Erro ao fazer upload para o MinIO; salvando no filesystem.")
+            return await self._save_to_filesystem(
+                audio_bytes,
+                uuid.UUID(student_id),
+                uuid.UUID(story_id),
+                filename,
+            )
+
+    async def _save_to_filesystem(
+        self,
+        audio_bytes: bytes,
+        student_uuid: uuid.UUID,
+        story_uuid: uuid.UUID,
+        filename: str,
+    ) -> str:
+        """Salva o áudio no filesystem local e retorna o caminho relativo."""
+        student_dir = self.uploads_dir / str(student_uuid) / str(story_uuid)
+        student_dir.mkdir(parents=True, exist_ok=True)
         file_path = student_dir / filename
-        
-        # Salvar arquivo
         with open(file_path, "wb") as f:
             f.write(audio_bytes)
-        
-        # Retornar caminho relativo
         return str(file_path.relative_to("uploads"))
+
+    async def get_audio_stream(self, audio_file_path: str):
+        """Retorna (iterador de bytes, content_type) do MinIO ou None se não disponível."""
+        if not self._minio_client:
+            return None
+        import asyncio
+
+        def _get():
+            return self._minio_client.get_object(settings.minio_bucket, audio_file_path)
+
+        try:
+            response = await asyncio.to_thread(_get)
+            content_type = _content_type_for(audio_file_path)
+            return response, content_type
+        except Exception:
+            logger.exception("Erro ao buscar objeto MinIO: %s", audio_file_path)
+            return None
 
     async def get_all_recordings(
         self,
