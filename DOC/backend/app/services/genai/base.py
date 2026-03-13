@@ -142,15 +142,39 @@ class BaseAIService(ABC):
 
     def _extract_json_payload(self, raw_text: str) -> Optional[dict]:
         content = raw_text.strip()
+
+        # Remove blocos de código markdown se presentes
         if "```" in content:
             match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
             if match:
                 content = match.group(1)
+
+        # Tenta parse direto
         try:
             data = json.loads(content)
+            return data if isinstance(data, dict) else None
         except json.JSONDecodeError:
-            return None
-        return data if isinstance(data, dict) else None
+            pass
+
+        # Extrai o bloco { ... } mais externo da resposta (modelo pode adicionar texto antes/depois)
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if match:
+            candidate = match.group(0)
+            # Normaliza quebras de linha literais dentro de strings JSON (modelo pode gerar \n real)
+            # Substitui quebras de linha por \n escapado apenas dentro de valores de string
+            candidate = re.sub(
+                r'("(?:[^"\\]|\\.)*")',
+                lambda m: m.group(0).replace("\n", "\\n").replace("\r", ""),
+                candidate,
+            )
+            try:
+                data = json.loads(candidate)
+                return data if isinstance(data, dict) else None
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning("[base] Falha ao extrair JSON. Prévia da resposta: %.300s", raw_text)
+        return None
 
     def _normalize_insight_payload(self, payload: dict) -> Optional[dict]:
         raw_type = str(payload.get("type", "suggestion")).strip()
@@ -284,6 +308,6 @@ class BaseAIService(ABC):
 
         payload = self._extract_json_payload(answer)
         if not payload:
-            logger.warning("Não foi possível extrair JSON da resposta do modelo: %.200s", answer)
+            logger.warning("Não foi possível extrair JSON da resposta do modelo: %.500s", answer)
             return None
         return self._normalize_insight_payload(payload)

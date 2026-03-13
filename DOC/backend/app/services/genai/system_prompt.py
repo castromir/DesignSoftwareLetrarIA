@@ -251,6 +251,8 @@ Uma frase motivadora que valorize o esforço do aluno ou destaque um ponto posit
 Não use listas com bullet points — escreva em prosa, em parágrafos fluentes.
 A descrição deve ter entre 150 e 400 palavras.
 
+**IMPORTANTE:** Como a descrição é um valor dentro de um objeto JSON, use `\n\n` (a sequência de escape, não uma quebra de linha real) para separar os parágrafos. Nunca insira quebras de linha reais dentro da string JSON — isso invalida o JSON e faz o sistema rejeitar a resposta.
+
 ---
 
 # Diretrizes Pedagógicas
