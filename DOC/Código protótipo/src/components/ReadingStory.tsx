@@ -4,7 +4,7 @@ import svgPaths from '../imports/svg-7k5czerodv';
 import { img } from '../imports/svg-a81u4';
 import { toast } from 'sonner@2.0.3';
 import * as DialogPrimitive from '@radix-ui/react-dialog@1.1.6';
-import { transcriptionApi, recordingApi } from '../services/api';
+import { transcriptionApi, recordingApi, aiInsightsApi } from '../services/api';
 import type { Recording } from '../types';
 
 interface Student {
@@ -201,10 +201,33 @@ export default function ReadingStory({
           );
           
           setTranscriptions(prev => [newRecording, ...prev]);
-          
+
           toast.success('Gravação salva!', {
             description: 'A gravação e transcrição foram salvas com sucesso.',
           });
+
+          // Polling para insight de IA (background task no backend)
+          const insightToastId = toast.loading('Gerando insight pedagógico com IA...');
+          const savedAt = Date.now();
+          let found = false;
+          for (let attempt = 0; attempt < 10; attempt++) {
+            await new Promise(r => setTimeout(r, 3000));
+            try {
+              const { insights } = await aiInsightsApi.list({ student_id: studentId, limit: 5 });
+              const newInsight = insights.find(
+                i => new Date(i.created_at).getTime() >= savedAt - 2000
+              );
+              if (newInsight) {
+                toast.success('Insight de IA gerado!', {
+                  id: insightToastId,
+                  description: newInsight.title,
+                });
+                found = true;
+                break;
+              }
+            } catch { /* silencia erros de polling */ }
+          }
+          if (!found) toast.dismiss(insightToastId);
         } catch (error) {
           console.error('Error saving recording:', error);
           toast.error('Erro ao salvar gravação', {

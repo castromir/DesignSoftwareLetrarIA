@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.recording_service import RecordingService
+from app.services.recording_service import RecordingService, generate_insight_background
 from app.schemas.recording import (
     RecordingCreate,
     RecordingUpdate,
@@ -20,6 +20,7 @@ router = APIRouter(prefix="/recordings", tags=["gravações"])
 
 @router.post("/", response_model=RecordingResponse, status_code=status.HTTP_201_CREATED)
 async def create_recording(
+    background_tasks: BackgroundTasks,
     student_id: str = Form(...),
     story_id: str = Form(...),
     duration_seconds: float = Form(...),
@@ -62,7 +63,15 @@ async def create_recording(
         audio_file_path=audio_file_path,
         created_by=current_user.id,
     )
-    
+
+    if transcription:
+        import uuid as _uuid
+        background_tasks.add_task(
+            generate_insight_background,
+            _uuid.UUID(recording.id),
+            current_user.id,
+        )
+
     return recording
 
 

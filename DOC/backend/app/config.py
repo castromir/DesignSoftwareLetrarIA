@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     google_genai_model: str = "gemini-1.5-flash"
     google_genai_location: str | None = None
 
+    # Provider de IA: "gemini" (padrão) ou "ollama"
+    ai_provider: str = "gemini"
+    ollama_base_url: str = "http://gpu-l40s-1.w3b.inf:11434"
+    ollama_model: str = "llama3.2"
+
     minio_endpoint: str | None = None
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"

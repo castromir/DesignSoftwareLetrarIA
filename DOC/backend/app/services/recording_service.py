@@ -20,12 +20,29 @@ from app.models.recording import Recording, RecordingStatus, RecordingAnalysis
 from app.models.ai_insight import AIInsight
 from app.models.student import Student
 from app.models.trail import TrailStory
-from app.services.genai.service import GeminiService, GeminiServiceError
+from app.services.genai.base import AIServiceError as GeminiServiceError
+from app.services.genai.factory import get_ai_service
 from app.services.reading_analysis import analyze_reading
 from app.config import settings
 
 
 logger = logging.getLogger(__name__)
+
+
+async def generate_insight_background(recording_id: uuid.UUID, created_by: Optional[uuid.UUID]) -> None:
+    """Gera o insight de IA em background, abrindo sua própria sessão de banco."""
+    from app.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        recording = await session.get(
+            Recording,
+            recording_id,
+            options=[selectinload(Recording.analysis)],
+        )
+        if not recording:
+            return
+        service = RecordingService(session)
+        await service._create_ai_insight_for_recording(recording, created_by)
 
 
 def _content_type_for(filename: str) -> str:
@@ -101,8 +118,6 @@ class RecordingService:
         await self.session.commit()
         await self.session.refresh(recording)
 
-        await self._create_ai_insight_for_recording(recording, created_by)
-
         return RecordingResponse(
             id=str(recording.id),
             student_id=str(recording.student_id),
@@ -134,8 +149,8 @@ class RecordingService:
             if not owner_professional_id:
                 return
 
-            gemini_service = GeminiService(self.session)
-            insight_payload = await gemini_service.generate_recording_insight(recording)
+            ai_service = get_ai_service(self.session)
+            insight_payload = await ai_service.generate_recording_insight(recording)
             if not insight_payload:
                 insight_payload = await self._build_analysis_insight_payload(recording)
             if not insight_payload:
