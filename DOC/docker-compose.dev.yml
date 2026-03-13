@@ -4,17 +4,17 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:15-alpine
-    container_name: letraria-db-dev-new
+    container_name: letraria-db-dev
     environment:
-      POSTGRES_USER: letraria_user
-      POSTGRES_PASSWORD: "letraria_password"
-      POSTGRES_DB: letraria_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "55432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U letraria_user -d letraria_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,20 +28,23 @@ services:
       dockerfile: Dockerfile
     container_name: letraria-backend-dev
     environment:
-      DATABASE_URL: postgresql+asyncpg://letraria_user:letraria_password@db:5432/letraria_db
-      SECRET_KEY: dev-secret-key
-      ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      ENVIRONMENT: development
-      DEBUG: "true"
-      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:5174", "http://127.0.0.1:5174"]}'
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      ENVIRONMENT: ${ENVIRONMENT}
+      DEBUG: ${DEBUG}
+      CORS_ORIGINS: ${CORS_ORIGINS}
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: letraria-recordings
-      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      GOOGLE_GENAI_API_KEY: ${GOOGLE_GENAI_API_KEY}
+      GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL}
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE}
     ports:
-      - "8888:8000"
+      - "${BACKEND_PORT}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -60,8 +63,8 @@ services:
       context: ./Código protótipo
       dockerfile: Dockerfile.dev
     container_name: letraria-frontend-dev
-    ports:
-      - "5174:5173"
+    expose:
+      - "5173"
     depends_on:
       - backend
     volumes:
@@ -70,28 +73,55 @@ services:
     networks:
       - letraria-network-dev
     environment:
-      - BACKEND_INTERNAL_URL=http://backend:8000
+      BACKEND_INTERNAL_URL: http://backend:8000
 
+  # Nginx — HTTPS com certificado autoassinado
+  nginx:
+    image: nginx:alpine
+    container_name: letraria-nginx-dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/generate-certs.sh:/docker-entrypoint.d/10-generate-certs.sh:ro
+      - nginx_certs:/etc/nginx/certs
+    environment:
+      VM_HOST: ${VM_HOST}
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - letraria-network-dev
+
+  # MinIO (armazenamento de áudio)
   minio:
     image: minio/minio
+    container_name: letraria-minio-dev
     ports:
-      - "9002:9000"
-      - "9003:9001"
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
     networks:
       - letraria-network-dev
 
+  # Criação automática do bucket no MinIO
   createbuckets:
     image: minio/mc
     depends_on:
       - minio
     entrypoint: >
-      /bin/sh -c " /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin; /usr/bin/mc mb --ignore-existing myminio/letraria-recordings; /usr/bin/mc anonymous set public myminio/letraria-recordings; exit 0; "
+      /bin/sh -c "
+        /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
+        /usr/bin/mc mb --ignore-existing myminio/${MINIO_BUCKET};
+        /usr/bin/mc anonymous set public myminio/${MINIO_BUCKET};
+        exit 0;
+      "
     networks:
       - letraria-network-dev
 
@@ -103,6 +133,8 @@ volumes:
   frontend_node_modules:
     driver: local
   minio_data:
+    driver: local
+  nginx_certs:
     driver: local
 
 networks:
