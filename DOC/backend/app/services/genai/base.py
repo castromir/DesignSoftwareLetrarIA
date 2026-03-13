@@ -12,6 +12,7 @@ from app.models.ai_insight import InsightPriority, InsightType
 from app.models.diagnostic import Diagnostic
 from app.models.recording import Recording, RecordingAnalysis
 from app.models.student import Student
+from app.services.genai.system_prompt import READING_EVALUATOR_PROMPT
 
 
 class AIServiceError(RuntimeError):
@@ -211,14 +212,15 @@ class BaseAIService(ABC):
             context_sections.append(f"Transcrições de leituras:\n{recordings_text}")
         context = "\n\n".join(context_sections) if context_sections else "Sem contexto adicional."
 
-        prompt = (
-            "Você é um assistente pedagógico especializado em alfabetização. "
-            "Use o contexto fornecido para responder de forma objetiva, em português do Brasil.\n\n"
-            f"Dados do estudante: {student.name} (idade: {student.age or 'não informada'})\n"
+        data_section = (
+            f"Aluno: {student.name} (idade: {student.age or 'não informada'})\n\n"
             f"Contexto disponível:\n{context}\n\n"
-            f"Pergunta: {question}\n\n"
-            "Resposta:"
+            f"Pergunta do professor: {question}\n\n"
+            "Responda de forma objetiva e prática, em português do Brasil. "
+            "Não responda em JSON — responda em texto corrido."
         )
+
+        prompt = f"{READING_EVALUATOR_PROMPT}\n\n---\n\n{data_section}"
 
         try:
             answer = await self._call_model(prompt)
@@ -256,23 +258,16 @@ class BaseAIService(ABC):
             context_sections.append(f"Métricas da leitura atual:\n{current_analysis_text}")
         context_summary = "\n\n".join(context_sections) if context_sections else "Sem contexto adicional."
 
-        prompt = (
-            "Você é um especialista em alfabetização auxiliando um profissional da educação. "
-            "Avalie a nova gravação do aluno com base no contexto e produza um insight pedagógico útil. "
-            "Mantenha um tom encorajador e prático.\n\n"
-            f"Aluno: {student.name} (idade: {student.age or 'não informada'})\n"
+        data_section = (
+            f"Aluno: {student.name} (idade: {student.age or 'não informada'})\n\n"
             f"Nova gravação:\n"
-            f"- História ID: {recording.story_id}\n"
             f"- Data/hora: {recording.recorded_at}\n"
             f"- Duração: {recording.duration_seconds:.1f} segundos\n"
             f"- Transcrição completa:\n{recording.transcription.strip()}\n\n"
-            f"Contexto adicional:\n{context_summary}\n\n"
-            "Responda exclusivamente em JSON com os campos obrigatórios:\n"
-            '{"type": "progress|attention_needed|suggestion", '
-            '"priority": "low|medium|high", '
-            '"title": "frase curta", "description": "parágrafo breve com orientação prática"}\n'
-            "Não inclua texto fora do JSON."
+            f"Contexto adicional:\n{context_summary}"
         )
+
+        prompt = f"{READING_EVALUATOR_PROMPT}\n\n---\n\n{data_section}"
 
         try:
             answer = await self._call_model(prompt)

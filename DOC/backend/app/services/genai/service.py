@@ -1,11 +1,14 @@
+from google import genai
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.genai.base import BaseAIService, AIServiceError
 from app.services.genai.client import get_genai_client, get_genai_model_config
 
-
 # Mantido para compatibilidade com imports existentes
 GeminiServiceError = AIServiceError
+
+# Delimitador usado para separar system prompt do conteúdo no prompt concatenado
+_SEPARATOR = "\n\n---\n\n"
 
 
 class GeminiService(BaseAIService):
@@ -21,11 +24,22 @@ class GeminiService(BaseAIService):
         if not model_id.startswith("models/"):
             model_id = f"models/{model_id}"
 
+        # Separa system prompt do user message pelo separador padrão
+        if _SEPARATOR in prompt:
+            system_part, user_part = prompt.split(_SEPARATOR, 1)
+        else:
+            system_part = ""
+            user_part = prompt
+
+        generate_config = genai.types.GenerateContentConfig(
+            system_instruction=system_part.strip() if system_part.strip() else None,
+        )
+
         try:
             response = self.client.models.generate_content(
                 model=model_id,
-                contents=prompt,
-                **config,
+                contents=user_part.strip(),
+                config=generate_config,
             )
         except Exception as exc:
             raise AIServiceError("Falha ao gerar conteúdo com o Gemini") from exc
