@@ -77,14 +77,14 @@ services:
 
   # Nginx — HTTPS com certificado autoassinado
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     container_name: letraria-nginx-dev
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/generate-certs.sh:/docker-entrypoint.d/10-generate-certs.sh:ro
       - nginx_certs:/etc/nginx/certs
     environment:
       VM_HOST: ${VM_HOST}
