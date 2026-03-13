@@ -33,6 +33,7 @@ async def generate_insight_background(recording_id: uuid.UUID, created_by: Optio
     """Gera o insight de IA em background, abrindo sua própria sessão de banco."""
     from app.database import AsyncSessionLocal
 
+    logger.info("[insight-bg] Iniciando geração de insight para recording_id=%s", recording_id)
     async with AsyncSessionLocal() as session:
         recording = await session.get(
             Recording,
@@ -40,9 +41,12 @@ async def generate_insight_background(recording_id: uuid.UUID, created_by: Optio
             options=[selectinload(Recording.analysis)],
         )
         if not recording:
+            logger.warning("[insight-bg] Gravação %s não encontrada no banco.", recording_id)
             return
+        logger.info("[insight-bg] Gravação encontrada. Chamando _create_ai_insight_for_recording.")
         service = RecordingService(session)
         await service._create_ai_insight_for_recording(recording, created_by)
+        logger.info("[insight-bg] Finalizado para recording_id=%s", recording_id)
 
 
 def _content_type_for(filename: str) -> str:
@@ -139,21 +143,34 @@ class RecordingService:
         created_by: Optional[uuid.UUID],
     ) -> None:
         if not recording.transcription:
+            logger.info("[insight] Gravação %s sem transcrição — pulando.", recording.id)
             return
         try:
             student: Optional[Student] = await self.session.get(Student, recording.student_id)
             if not student:
+                logger.warning("[insight] Aluno %s não encontrado.", recording.student_id)
                 return
 
             owner_professional_id = created_by or student.professional_id
             if not owner_professional_id:
+                logger.warning("[insight] Sem professional_id para a gravação %s.", recording.id)
                 return
 
+            logger.info("[insight] Chamando AI service para recording=%s provider=%s",
+                        recording.id, settings.ai_provider)
             ai_service = get_ai_service(self.session)
             insight_payload = await ai_service.generate_recording_insight(recording)
-            if not insight_payload:
+
+            if insight_payload:
+                logger.info("[insight] IA gerou payload: type=%s priority=%s title=%r",
+                            insight_payload.get("type"), insight_payload.get("priority"),
+                            insight_payload.get("title"))
+            else:
+                logger.warning("[insight] IA retornou None — usando fallback algorítmico.")
                 insight_payload = await self._build_analysis_insight_payload(recording)
+
             if not insight_payload:
+                logger.warning("[insight] Fallback também retornou None. Nenhum insight salvo.")
                 return
 
             await self.ai_insight_repository.create(
@@ -165,6 +182,7 @@ class RecordingService:
                 related_students=[student.id],
             )
             await self.session.commit()
+            logger.info("[insight] Insight salvo com sucesso para recording=%s.", recording.id)
         except GeminiServiceError as exc:
             logger.warning(
                 "GeminiServiceError ao gerar insight para gravação %s: %s",
