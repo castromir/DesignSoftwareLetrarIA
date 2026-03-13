@@ -44,6 +44,13 @@ class RecordingService:
         self.recording_repository = RecordingRepository(session)
         self.ai_insight_repository = AIInsightRepository(session)
 
+        # Diretório local (sempre disponível como fallback)
+        self.uploads_dir = Path("uploads/recordings")
+        try:
+            self.uploads_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            logger.warning("Sem permissão para criar diretório de gravações; utilizando caminho existente.")
+
         # MinIO client (quando configurado)
         self._minio_client = None
         if settings.minio_endpoint:
@@ -55,18 +62,19 @@ class RecordingService:
                     secret_key=settings.minio_secret_key,
                     secure=settings.minio_use_ssl,
                 )
-                logger.info("MinIO configurado: endpoint=%s bucket=%s", settings.minio_endpoint, settings.minio_bucket)
+                # Garantir que o bucket existe
+                try:
+                    if not self._minio_client.bucket_exists(settings.minio_bucket):
+                        self._minio_client.make_bucket(settings.minio_bucket)
+                        logger.info("Bucket '%s' criado no MinIO.", settings.minio_bucket)
+                    else:
+                        logger.info("MinIO configurado: endpoint=%s bucket=%s", settings.minio_endpoint, settings.minio_bucket)
+                except Exception:
+                    logger.exception("Não foi possível verificar/criar o bucket MinIO; usando filesystem.")
+                    self._minio_client = None
             except Exception:
                 logger.exception("Falha ao inicializar cliente MinIO; usando filesystem.")
                 self._minio_client = None
-
-        # Diretório local (fallback quando MinIO não está configurado)
-        if not self._minio_client:
-            self.uploads_dir = Path("uploads/recordings")
-            try:
-                self.uploads_dir.mkdir(parents=True, exist_ok=True)
-            except PermissionError:
-                logger.warning("Sem permissão para criar diretório de gravações; utilizando caminho existente.")
 
     async def create_recording(
         self,
@@ -319,8 +327,13 @@ class RecordingService:
             await asyncio.to_thread(_upload)
             logger.info("Áudio salvo no MinIO: %s/%s", settings.minio_bucket, object_key)
             return object_key
-        except Exception:
-            logger.exception("Erro ao fazer upload para o MinIO; salvando no filesystem.")
+        except Exception as exc:
+            logger.exception(
+                "Erro ao fazer upload para o MinIO (bucket=%s, key=%s): %s — usando filesystem como fallback.",
+                settings.minio_bucket,
+                object_key,
+                exc,
+            )
             return await self._save_to_filesystem(
                 audio_bytes,
                 uuid.UUID(student_id),

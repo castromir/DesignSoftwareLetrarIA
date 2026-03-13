@@ -169,19 +169,24 @@ class WhisperService:
         try:
             if not file_extension.startswith("."):
                 file_extension = "." + file_extension
-            
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
                 temp_file.write(audio_bytes)
                 temp_path = temp_file.name
-            
+
             try:
                 transcript = await self.transcribe_file(temp_path, language)
                 return transcript
             finally:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
-                    
+
+        except HTTPException:
+            raise
         except Exception as e:
+            import traceback
+            print(f"[WhisperService] Erro em transcribe_bytes: {str(e)}")
+            print(traceback.format_exc())
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erro ao transcrever áudio: {str(e)}"

@@ -1,7 +1,8 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Plus } from "lucide-react";
 import React, { useState, useEffect, useMemo } from "react";
 import svgPaths from "../imports/svg-zrbw3wzc3o";
 import ReadingStory from "./ReadingStory";
+import CreateTrailModal from "./CreateTrailModal";
 import { cn } from "./ui/utils";
 import {
   Popover,
@@ -125,6 +126,7 @@ export default function ReadingTrail({
 }: ReadingTrailProps) {
   const [selectedStory, setSelectedStory] =
     useState<Story | null>(null);
+  const [showCreateTrail, setShowCreateTrail] = useState(false);
   const [filterRead, setFilterRead] = useState(false);
   const [filterUnread, setFilterUnread] = useState(false);
   const [completedStoryIds, setCompletedStoryIds] = useState<Set<string>>(new Set());
@@ -256,6 +258,20 @@ export default function ReadingTrail({
     return 0;
   });
 
+  // Show Create Trail
+  if (showCreateTrail) {
+    return (
+      <CreateTrailModal
+        student={student}
+        onBack={() => setShowCreateTrail(false)}
+        onCreated={() => {
+          setShowCreateTrail(false);
+          fetchTrails({ is_default: true });
+        }}
+      />
+    );
+  }
+
   // Show Reading Story
   if (selectedStory) {
     return (
@@ -283,6 +299,13 @@ export default function ReadingTrail({
         <h1 className="text-[19px] font-semibold text-black flex-1">
           Trilha de leitura - {student.name}
         </h1>
+        <button
+          onClick={() => setShowCreateTrail(true)}
+          className="flex items-center gap-1 text-[13px] font-semibold text-[#1CA8F3] hover:text-[#0e90d9] transition-colors px-2 py-1 rounded-lg hover:bg-blue-50"
+        >
+          <Plus className="h-4 w-4" />
+          Nova trilha
+        </button>
       </div>
 
       {/* Content - Scrollable */}
