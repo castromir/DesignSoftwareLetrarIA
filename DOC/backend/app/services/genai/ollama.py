@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.services.genai.base import BaseAIService, AIServiceError
 
-# Delimitador usado para separar system prompt do conteúdo no prompt concatenado
 _SEPARATOR = "\n\n---\n\n"
 
 
@@ -15,28 +14,26 @@ class OllamaService(BaseAIService):
         self.model = settings.ollama_model
 
     async def _call_model(self, prompt: str) -> str:
-        # Separa system prompt do user message pelo separador padrão
+        # Monta o prompt final: system_part + separador + user_part como texto único
+        # /api/generate aceita campo "system" separado para system instruction
         if _SEPARATOR in prompt:
             system_part, user_part = prompt.split(_SEPARATOR, 1)
         else:
             system_part = ""
             user_part = prompt
 
-        messages = []
-        if system_part.strip():
-            messages.append({"role": "system", "content": system_part.strip()})
-        messages.append({"role": "user", "content": user_part.strip()})
-
         payload = {
             "model": self.model,
-            "messages": messages,
+            "prompt": user_part.strip(),
             "stream": False,
         }
+        if system_part.strip():
+            payload["system"] = system_part.strip()
 
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/chat",
+                    f"{self.base_url}/api/generate",
                     json=payload,
                 )
                 response.raise_for_status()
@@ -44,7 +41,7 @@ class OllamaService(BaseAIService):
         except httpx.HTTPError as exc:
             raise AIServiceError(f"Erro ao chamar Ollama: {exc}") from exc
 
-        answer = data.get("message", {}).get("content", "")
+        answer = data.get("response", "")
         if not answer:
             raise AIServiceError("Resposta vazia recebida do Ollama")
         return answer

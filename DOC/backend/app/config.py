@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Provider de IA: "gemini" (padrão) ou "ollama"
     ai_provider: str = "gemini"
     ollama_base_url: str = "http://gpu-l40s-1.w3b.inf:11434"
-    ollama_model: str = "llama3.2"
+    ollama_model: str = "mistral-small3.2:24b"
 
     minio_endpoint: str | None = None
     minio_access_key: str = "minioadmin"

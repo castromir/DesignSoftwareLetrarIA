@@ -1,8 +1,11 @@
 import json
+import logging
 import re
 import uuid
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -272,12 +275,15 @@ class BaseAIService(ABC):
         try:
             answer = await self._call_model(prompt)
         except Exception:
+            logger.exception("Falha ao chamar o modelo de IA para generate_recording_insight")
             return None
 
         if not answer:
+            logger.warning("Modelo de IA retornou resposta vazia para generate_recording_insight")
             return None
 
         payload = self._extract_json_payload(answer)
         if not payload:
+            logger.warning("Não foi possível extrair JSON da resposta do modelo: %.200s", answer)
             return None
         return self._normalize_insight_payload(payload)
