@@ -75,7 +75,7 @@ services:
     environment:
       BACKEND_INTERNAL_URL: http://backend:8000
 
-  # Nginx — HTTPS com certificado autoassinado
+  # Nginx — HTTPS com certificado autoassinado (gerado no build)
   nginx:
     build:
       context: ./nginx
@@ -84,10 +84,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    volumes:
-      - nginx_certs:/etc/nginx/certs
-    environment:
-      VM_HOST: ${VM_HOST}
     depends_on:
       - frontend
       - backend
@@ -133,8 +129,6 @@ volumes:
   frontend_node_modules:
     driver: local
   minio_data:
-    driver: local
-  nginx_certs:
     driver: local
 
 networks:
