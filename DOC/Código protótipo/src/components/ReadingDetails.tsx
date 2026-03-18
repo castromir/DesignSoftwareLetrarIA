@@ -102,11 +102,36 @@ function AccuracyChart({ percentage }: { percentage?: number | null }) {
 function FixedTooltip({ text, x, y }: { text: string; x: number; y: number }) {
   return (
     <div
-      style={{ position: "fixed", left: x, top: y - 52, transform: "translateX(-50%)", zIndex: 9999 }}
-      className="w-[200px] bg-[#1e1e1e] text-white text-[11px] leading-[1.5] rounded-[8px] px-3 py-2 text-center pointer-events-none shadow-lg"
+      style={{
+        position: "fixed",
+        left: x,
+        top: y - 52,
+        transform: "translateX(-50%)",
+        zIndex: 9999,
+        backgroundColor: "#1e1e1e",
+        color: "#ffffff",
+        fontSize: 11,
+        lineHeight: 1.5,
+        borderRadius: 8,
+        padding: "6px 12px",
+        width: 200,
+        textAlign: "center",
+        pointerEvents: "none",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      }}
     >
       {text}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e1e1e]" />
+      <div
+        style={{
+          position: "absolute",
+          top: "100%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          borderWidth: 4,
+          borderStyle: "solid",
+          borderColor: "#1e1e1e transparent transparent transparent",
+        }}
+      />
     </div>
   );
 }
