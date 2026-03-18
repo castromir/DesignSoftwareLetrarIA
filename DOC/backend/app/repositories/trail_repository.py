@@ -22,7 +22,9 @@ class TrailRepository:
         conditions = []
         
         if created_by and not (is_default is True):
-            conditions.append(Trail.created_by == created_by)
+            conditions.append(
+                or_(Trail.created_by == created_by, Trail.is_default == True)
+            )
         
         if difficulty:
             conditions.append(Trail.difficulty == difficulty)
@@ -122,7 +124,9 @@ class TrailRepository:
         conditions = []
         
         if created_by:
-            conditions.append(Trail.created_by == created_by)
+            conditions.append(
+                or_(Trail.created_by == created_by, Trail.is_default == True)
+            )
         
         if difficulty:
             conditions.append(Trail.difficulty == difficulty)

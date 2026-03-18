@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, Play, Pause } from "lucide-react";
 import svgPaths from "../imports/svg-v9zu5ssadb";
 import { recordingApi } from "../services/api";
@@ -99,17 +99,29 @@ function AccuracyChart({ percentage }: { percentage?: number | null }) {
   );
 }
 
+function Tooltip({ text }: { text: string }) {
+  return (
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-[200px] bg-[#1e1e1e] text-white text-[11px] leading-[1.5] rounded-[8px] px-3 py-2 text-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
+      {text}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e1e1e]" />
+    </div>
+  );
+}
+
 function MetricCard({
   value,
   label,
   variant = "default",
+  tooltip,
 }: {
   value: string | number;
   label: string;
   variant?: "default" | "error";
+  tooltip?: string;
 }) {
   return (
-    <div className="bg-white rounded-[15px] border border-black/12 p-[25.29px] flex flex-col items-center justify-center h-[115px]">
+    <div className="group relative bg-white rounded-[15px] border border-black/12 p-[25.29px] flex flex-col items-center justify-center h-[115px] cursor-default">
+      {tooltip && <Tooltip text={tooltip} />}
       <p
         className={`text-[22px] font-normal mb-3 ${
           variant === "error" ? "text-[#d80000]" : "text-black"
@@ -128,15 +140,18 @@ function SmallMetricCard({
   value,
   label,
   bgColor = "bg-[#f0f0f0]",
+  tooltip,
 }: {
   value: string | number;
   label: string;
   bgColor?: string;
+  tooltip?: string;
 }) {
   return (
     <div
-      className={`${bgColor} rounded-[15px] p-4 flex flex-col items-center justify-center h-[86.466px]`}
+      className={`group relative ${bgColor} rounded-[15px] p-4 flex flex-col items-center justify-center h-[86.466px] cursor-default`}
     >
+      {tooltip && <Tooltip text={tooltip} />}
       <p className="text-[18px] font-normal text-black mb-2">{value}</p>
       <p className="text-[13px] font-normal text-black text-center">{label}</p>
     </div>
@@ -167,121 +182,104 @@ function AudioPlayer({
   durationSeconds?: number;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(durationSeconds ?? 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDuration(durationSeconds ?? 0);
-  }, [durationSeconds]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
+    const audio = new Audio();
+    audioRef.current = audio;
     let canceled = false;
-    let url: string | null = null;
+
+    audio.addEventListener("canplay", () => {
+      if (!canceled) setIsReady(true);
+    });
+    audio.addEventListener("timeupdate", () => {
+      if (!canceled) setCurrentTime(audio.currentTime);
+    });
+    audio.addEventListener("loadedmetadata", () => {
+      if (!canceled && !Number.isNaN(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+      }
+    });
+    audio.addEventListener("ended", () => {
+      if (!canceled) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        audio.currentTime = 0;
+      }
+    });
+    audio.addEventListener("error", () => {
+      if (!canceled) setError("Erro ao reproduzir o áudio.");
+    });
 
     const load = async () => {
       try {
         const token = localStorage.getItem("auth_token");
-        const audioUrl = recordingApi.getAudioUrl(recordingId);
-
-        const response = await fetch(audioUrl, {
+        const response = await fetch(recordingApi.getAudioUrl(recordingId), {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 
         if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(
-            `Erro ao carregar áudio: ${response.status} ${text}`.trim()
-          );
+          throw new Error(`Erro ${response.status} ao carregar áudio`);
         }
 
         const blob = await response.blob();
-        if (blob.size === 0) {
-          throw new Error("Arquivo de áudio vazio");
-        }
-
+        if (blob.size === 0) throw new Error("Arquivo de áudio vazio");
         if (canceled) return;
 
-        setError(null);
-        url = URL.createObjectURL(blob);
-        setObjectUrl(url);
+        const url = URL.createObjectURL(blob);
+        blobUrlRef.current = url;
         audio.src = url;
         audio.load();
       } catch (err) {
         if (!canceled) {
-          console.error("[ReadingDetails] Error loading audio:", err);
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Erro ao carregar áudio da leitura"
-          );
+          setError(err instanceof Error ? err.message : "Erro ao carregar áudio");
         }
       }
     };
 
     load();
 
-    const handleTimeUpdate = () => {
-      if (!audio) return;
-      setCurrentTime(audio.currentTime);
-      if (!Number.isNaN(audio.duration) && audio.duration > 0) {
-        setDuration(audio.duration);
-      }
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("loadedmetadata", handleTimeUpdate);
-    audio.addEventListener("ended", handleEnded);
-
     return () => {
       canceled = true;
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("loadedmetadata", handleTimeUpdate);
-      audio.removeEventListener("ended", handleEnded);
-      if (url) {
-        URL.revokeObjectURL(url);
-      }
-      if (audio.src) {
-        audio.pause();
-        audio.src = "";
-        audio.load();
+      audio.pause();
+      audio.src = "";
+      audioRef.current = null;
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
       }
     };
   }, [recordingId]);
 
-  useEffect(() => {
+  const togglePlay = async () => {
     const audio = audioRef.current;
-    if (!audio || !audio.src) return;
+    if (!audio) return;
 
     if (isPlaying) {
-      audio
-        .play()
-        .catch((err) => {
-          console.error("Error playing audio:", err);
-          setError("Erro ao reproduzir áudio");
-        });
-    } else {
       audio.pause();
+      setIsPlaying(false);
+    } else {
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch (err) {
+        console.error("[AudioPlayer] play error:", err);
+        setError("Não foi possível reproduzir o áudio.");
+      }
     }
-  }, [isPlaying]);
+  };
 
   return (
     <div className="bg-white rounded-[10px] border border-black/12 p-[21.296px]">
-      <audio ref={audioRef} />
       <div className="flex items-center gap-4">
         <button
-          onClick={() => setIsPlaying((prev) => !prev)}
-          disabled={!objectUrl || !!error}
+          onClick={togglePlay}
+          disabled={!isReady || !!error}
           className="w-[44px] h-[44px] rounded-full bg-[#3c81e9] shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] flex items-center justify-center hover:bg-[#2d6fd9] transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isPlaying ? (
@@ -293,7 +291,7 @@ function AudioPlayer({
 
         <div className="flex-1">
           <p className="text-[13px] font-normal text-[#2f2f2f] mb-2">
-            Ouvir gravação
+            {!isReady && !error ? "Carregando áudio…" : "Ouvir gravação"}
           </p>
           {error ? (
             <p className="text-[12px] text-red-600">{error}</p>
@@ -369,6 +367,7 @@ export default function ReadingDetails({
         label: "Tempo de leitura",
         value: formatDuration(durationSeconds),
         variant: "default" as const,
+        tooltip: "Duração total da gravação da leitura.",
       },
       {
         label: "Acertos",
@@ -379,6 +378,7 @@ export default function ReadingDetails({
               }`
             : "–",
         variant: "default" as const,
+        tooltip: "Palavras lidas corretamente sobre o total de palavras do texto de referência.",
       },
       {
         label: "Erros",
@@ -387,6 +387,7 @@ export default function ReadingDetails({
           metrics && metrics.errors_count > 0
             ? ("error" as const)
             : ("default" as const),
+        tooltip: "Palavras lidas incorretamente: substituições, omissões ou inserções em relação ao texto original.",
       },
     ],
     [durationSeconds, metrics]
@@ -397,22 +398,27 @@ export default function ReadingDetails({
       {
         label: "Acurácia (%)",
         value: formatNumber(metrics?.accuracy_percentage, 0),
+        tooltip: "Palavras corretas ÷ total de palavras do texto × 100. ≥90% = segura | 80–89% = boa | 60–79% = em desenvolvimento | <60% = dificuldade.",
       },
       {
         label: "Score geral",
         value: formatNumber(metrics?.overall_score, 0),
+        tooltip: "Média entre acurácia, fluência e prosódia (0–100).",
       },
       {
         label: "Fluência (%)",
         value: formatNumber(metrics?.fluency_score, 0),
+        tooltip: "PPM ÷ 120 × 100. Usa 120 palavras/min como referência de fluência plena.",
       },
       {
         label: "Prosódia",
         value: formatNumber(metrics?.prosody_score, 0),
+        tooltip: "Pontuação 0–100 gerada pela IA com base na expressividade, ritmo, pausas e entonação. 80–100 = expressiva | 60–79 = regular | 40–59 = inconsistente | 0–39 = monótona.",
       },
       {
         label: "PPM",
         value: formatNumber(metrics?.words_per_minute, 0),
+        tooltip: "Palavras Corretas Por Minuto (WCPM) = palavras acertadas ÷ minutos de gravação. Mede a automaticidade da leitura.",
       },
     ],
     [metrics]
@@ -454,6 +460,7 @@ export default function ReadingDetails({
                   value={metric.value}
                   label={metric.label}
                   variant={metric.variant}
+                  tooltip={metric.tooltip}
                 />
               ))}
             </div>
@@ -461,6 +468,7 @@ export default function ReadingDetails({
               value={topMetrics[2].value}
               label={topMetrics[2].label}
               variant={topMetrics[2].variant}
+              tooltip={topMetrics[2].tooltip}
             />
 
             <div className="bg-white rounded-[15px] border border-black/12 p-6">
@@ -481,6 +489,7 @@ export default function ReadingDetails({
                     key={metric.label}
                     value={metric.value}
                     label={metric.label}
+                    tooltip={metric.tooltip}
                   />
                 ))}
               </div>
@@ -582,6 +591,7 @@ export default function ReadingDetails({
                   value={topMetrics[0].value}
                   label={topMetrics[0].label}
                   variant={topMetrics[0].variant}
+                  tooltip={topMetrics[0].tooltip}
                 />
               </div>
               <div className="col-span-4">
@@ -589,6 +599,7 @@ export default function ReadingDetails({
                   value={topMetrics[1].value}
                   label={topMetrics[1].label}
                   variant={topMetrics[1].variant}
+                  tooltip={topMetrics[1].tooltip}
                 />
               </div>
               <div className="col-span-4">
@@ -596,6 +607,7 @@ export default function ReadingDetails({
                   value={topMetrics[2].value}
                   label={topMetrics[2].label}
                   variant={topMetrics[2].variant}
+                  tooltip={topMetrics[2].tooltip}
                 />
               </div>
 
