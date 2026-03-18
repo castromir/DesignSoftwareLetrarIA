@@ -99,17 +99,12 @@ function AccuracyChart({ percentage }: { percentage?: number | null }) {
   );
 }
 
-function Tooltip({ text, position = "top" }: { text: string; position?: "top" | "bottom" }) {
-  if (position === "bottom") {
-    return (
-      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[200px] bg-[#1e1e1e] text-white text-[11px] leading-[1.5] rounded-[8px] px-3 py-2 text-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#1e1e1e]" />
-        {text}
-      </div>
-    );
-  }
+function FixedTooltip({ text, x, y }: { text: string; x: number; y: number }) {
   return (
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-[200px] bg-[#1e1e1e] text-white text-[11px] leading-[1.5] rounded-[8px] px-3 py-2 text-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
+    <div
+      style={{ position: "fixed", left: x, top: y - 52, transform: "translateX(-50%)", zIndex: 9999 }}
+      className="w-[200px] bg-[#1e1e1e] text-white text-[11px] leading-[1.5] rounded-[8px] px-3 py-2 text-center pointer-events-none shadow-lg"
+    >
       {text}
       <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e1e1e]" />
     </div>
@@ -127,9 +122,15 @@ function MetricCard({
   variant?: "default" | "error";
   tooltip?: string;
 }) {
+  const [mouse, setMouse] = useState<{ x: number; y: number } | null>(null);
   return (
-    <div className="group relative bg-white rounded-[15px] border border-black/12 p-[25.29px] flex flex-col items-center justify-center h-[115px] cursor-default">
-      {tooltip && <Tooltip text={tooltip} position="bottom" />}
+    <div
+      className="relative bg-white rounded-[15px] border border-black/12 p-[25.29px] flex flex-col items-center justify-center h-[115px] cursor-default"
+      onMouseEnter={(e) => tooltip && setMouse({ x: e.clientX, y: e.clientY })}
+      onMouseMove={(e) => tooltip && setMouse({ x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => setMouse(null)}
+    >
+      {tooltip && mouse && <FixedTooltip text={tooltip} x={mouse.x} y={mouse.y} />}
       <p
         className={`text-[22px] font-normal mb-3 ${
           variant === "error" ? "text-[#d80000]" : "text-black"
@@ -155,11 +156,15 @@ function SmallMetricCard({
   bgColor?: string;
   tooltip?: string;
 }) {
+  const [mouse, setMouse] = useState<{ x: number; y: number } | null>(null);
   return (
     <div
-      className={`group relative ${bgColor} rounded-[15px] p-4 flex flex-col items-center justify-center h-[86.466px] cursor-default`}
+      className={`relative ${bgColor} rounded-[15px] p-4 flex flex-col items-center justify-center h-[86.466px] cursor-default`}
+      onMouseEnter={(e) => tooltip && setMouse({ x: e.clientX, y: e.clientY })}
+      onMouseMove={(e) => tooltip && setMouse({ x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => setMouse(null)}
     >
-      {tooltip && <Tooltip text={tooltip} />}
+      {tooltip && mouse && <FixedTooltip text={tooltip} x={mouse.x} y={mouse.y} />}
       <p className="text-[18px] font-normal text-black mb-2">{value}</p>
       <p className="text-[13px] font-normal text-black text-center">{label}</p>
     </div>
