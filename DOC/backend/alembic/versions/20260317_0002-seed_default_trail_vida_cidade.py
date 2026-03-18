@@ -50,8 +50,8 @@ def upgrade() -> None:
             'Instrumento 0.1 – Série: 3° Ano – A',
             'intermediate',
             true,
-            8,
-            9,
+            NULL,
+            NULL,
             now(),
             now()
         )

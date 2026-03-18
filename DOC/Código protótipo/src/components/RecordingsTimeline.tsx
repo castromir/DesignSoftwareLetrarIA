@@ -52,10 +52,10 @@ const formatNum = (value?: number | null, decimals = 0) => {
   return value.toFixed(decimals).replace(".", ",");
 };
 
-const insightColors: Record<string, { bg: string; border: string; badge: string }> = {
-  progress: { bg: "bg-[#d9ffc2]", border: "border-[#4ade80]", badge: "bg-[#4ade80]" },
-  attention_needed: { bg: "bg-[#ffe2dd]", border: "border-[#f87171]", badge: "bg-[#f87171]" },
-  suggestion: { bg: "bg-[#fff4d6]", border: "border-[#facc15]", badge: "bg-[#facc15]" },
+const insightColors: Record<string, { bg: string; border: string; badge: string; dot: string }> = {
+  progress: { bg: "bg-[#d9ffc2]", border: "border-[#4ade80]", badge: "bg-[#4ade80]", dot: "#4ade80" },
+  attention_needed: { bg: "bg-[#ffe2dd]", border: "border-[#f87171]", badge: "bg-[#f87171]", dot: "#f87171" },
+  suggestion: { bg: "bg-[#fff4d6]", border: "border-[#facc15]", badge: "bg-[#facc15]", dot: "#facc15" },
 };
 
 const insightLabel: Record<string, string> = {
@@ -65,7 +65,7 @@ const insightLabel: Record<string, string> = {
 };
 
 function InsightCard({ insight }: { insight: NonNullable<RecordingTimelineEntry["insight"]> }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const colors = insightColors[insight.type] ?? insightColors.suggestion;
 
   return (
@@ -104,14 +104,20 @@ function TimelineCard({
   index: number;
   isLast: boolean;
 }) {
+  const insightType = entry.insight?.type;
+  const dotColor = insightType ? (insightColors[insightType]?.dot ?? "#4084dd") : "#4084dd";
+
   return (
     <div className="flex gap-4">
       {/* Linha vertical + círculo */}
       <div className="flex flex-col items-center flex-shrink-0">
-        <div className="w-8 h-8 rounded-full bg-[#4084dd] flex items-center justify-center text-white text-[12px] font-bold shadow-md">
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-bold shadow-md"
+          style={{ backgroundColor: dotColor }}
+        >
           {index + 1}
         </div>
-        {!isLast && <div className="w-0.5 flex-1 bg-[#4084dd]/30 mt-1 min-h-[24px]" />}
+        {!isLast && <div className="w-0.5 flex-1 mt-1 min-h-[24px]" style={{ backgroundColor: `${dotColor}50` }} />}
       </div>
 
       {/* Card */}
@@ -194,6 +200,16 @@ export default function RecordingsTimeline({
     [entries]
   );
 
+  const chartDataProsody = useMemo(
+    () =>
+      entries.map((e, i) => ({
+        index: i + 1,
+        prosody: e.prosody_score ?? 0,
+        label: formatDate(e.recorded_at),
+      })),
+    [entries]
+  );
+
   return (
     <div className="fixed inset-0 bg-[#f0f0f0] z-50 flex flex-col">
       {/* Header */}
@@ -229,20 +245,15 @@ export default function RecordingsTimeline({
           </div>
         ) : (
           <div className="max-w-2xl mx-auto px-4 pt-6">
-            {/* Gráficos */}
+            {/* Gráficos — visíveis a partir de 2 leituras */}
             {entries.length > 1 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                {/* PPM Chart */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                {/* PPM */}
                 <div className="bg-white rounded-[12px] border border-black/10 p-4 shadow-sm">
-                  <p className="text-[13px] font-semibold text-black mb-3">
-                    PPM por leitura
-                  </p>
-                  <div className="h-[120px]">
+                  <p className="text-[13px] font-semibold text-black mb-3">PPM por leitura</p>
+                  <div className="h-[100px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={chartDataPPM}
-                        margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                      >
+                      <AreaChart data={chartDataPPM} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorPPM" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#4084dd" stopOpacity={0.3} />
@@ -250,42 +261,21 @@ export default function RecordingsTimeline({
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="0" stroke="#f0f0f0" vertical={false} />
-                        <XAxis
-                          dataKey="index"
-                          tickFormatter={(v) => chartDataPPM[v - 1]?.label ?? String(v)}
-                          tick={{ fontSize: 10, fill: "#888" }}
-                          minTickGap={20}
-                        />
+                        <XAxis dataKey="index" tickFormatter={(v) => chartDataPPM[v - 1]?.label ?? String(v)} tick={{ fontSize: 10, fill: "#888" }} minTickGap={20} />
                         <YAxis hide domain={["auto", "auto"]} />
-                        <Tooltip
-                          formatter={(value: number) => [`${value.toFixed(0)} PPM`, "PPM"]}
-                          labelFormatter={(label) => chartDataPPM[Number(label) - 1]?.label ?? `Leitura ${label}`}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="ppm"
-                          stroke="#4084dd"
-                          strokeWidth={2.5}
-                          fill="url(#colorPPM)"
-                          animationDuration={600}
-                          dot={{ r: 3, fill: "#4084dd" }}
-                        />
+                        <Tooltip formatter={(value: number) => [`${value.toFixed(0)} PPM`, "PPM"]} labelFormatter={(label) => chartDataPPM[Number(label) - 1]?.label ?? `Leitura ${label}`} />
+                        <Area type="monotone" dataKey="ppm" stroke="#4084dd" strokeWidth={2.5} fill="url(#colorPPM)" animationDuration={600} dot={{ r: 3, fill: "#4084dd" }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Accuracy Chart */}
+                {/* Acurácia */}
                 <div className="bg-white rounded-[12px] border border-black/10 p-4 shadow-sm">
-                  <p className="text-[13px] font-semibold text-black mb-3">
-                    Acurácia por leitura (%)
-                  </p>
-                  <div className="h-[120px]">
+                  <p className="text-[13px] font-semibold text-black mb-3">Acurácia (%)</p>
+                  <div className="h-[100px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={chartDataAccuracy}
-                        margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                      >
+                      <AreaChart data={chartDataAccuracy} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorAcc" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
@@ -293,26 +283,32 @@ export default function RecordingsTimeline({
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="0" stroke="#f0f0f0" vertical={false} />
-                        <XAxis
-                          dataKey="index"
-                          tickFormatter={(v) => chartDataAccuracy[v - 1]?.label ?? String(v)}
-                          tick={{ fontSize: 10, fill: "#888" }}
-                          minTickGap={20}
-                        />
+                        <XAxis dataKey="index" tickFormatter={(v) => chartDataAccuracy[v - 1]?.label ?? String(v)} tick={{ fontSize: 10, fill: "#888" }} minTickGap={20} />
                         <YAxis hide domain={[0, 100]} />
-                        <Tooltip
-                          formatter={(value: number) => [`${value.toFixed(0)}%`, "Acurácia"]}
-                          labelFormatter={(label) => chartDataAccuracy[Number(label) - 1]?.label ?? `Leitura ${label}`}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="accuracy"
-                          stroke="#22c55e"
-                          strokeWidth={2.5}
-                          fill="url(#colorAcc)"
-                          animationDuration={600}
-                          dot={{ r: 3, fill: "#22c55e" }}
-                        />
+                        <Tooltip formatter={(value: number) => [`${value.toFixed(0)}%`, "Acurácia"]} labelFormatter={(label) => chartDataAccuracy[Number(label) - 1]?.label ?? `Leitura ${label}`} />
+                        <Area type="monotone" dataKey="accuracy" stroke="#22c55e" strokeWidth={2.5} fill="url(#colorAcc)" animationDuration={600} dot={{ r: 3, fill: "#22c55e" }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Prosódia */}
+                <div className="bg-white rounded-[12px] border border-black/10 p-4 shadow-sm">
+                  <p className="text-[13px] font-semibold text-black mb-3">Prosódia (0–100)</p>
+                  <div className="h-[100px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartDataProsody} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorProsody" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.03} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="0" stroke="#f0f0f0" vertical={false} />
+                        <XAxis dataKey="index" tickFormatter={(v) => chartDataProsody[v - 1]?.label ?? String(v)} tick={{ fontSize: 10, fill: "#888" }} minTickGap={20} />
+                        <YAxis hide domain={[0, 100]} />
+                        <Tooltip formatter={(value: number) => [`${value.toFixed(0)}`, "Prosódia"]} labelFormatter={(label) => chartDataProsody[Number(label) - 1]?.label ?? `Leitura ${label}`} />
+                        <Area type="monotone" dataKey="prosody" stroke="#f59e0b" strokeWidth={2.5} fill="url(#colorProsody)" animationDuration={600} dot={{ r: 3, fill: "#f59e0b" }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
