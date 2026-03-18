@@ -38,7 +38,10 @@ async def generate_insight_background(recording_id: uuid.UUID, created_by: Optio
         recording = await session.get(
             Recording,
             recording_id,
-            options=[selectinload(Recording.analysis)],
+            options=[
+                selectinload(Recording.analysis),
+                selectinload(Recording.story),
+            ],
         )
         if not recording:
             logger.warning("[insight-bg] Gravação %s não encontrada no banco.", recording_id)

@@ -53,7 +53,7 @@ async def list_trails(
             )
     
     filter_created_by = None
-    if current_user.role.value == "professional" and not is_default:
+    if current_user.role.value == "professional" and is_default is not True:
         filter_created_by = current_user.id
     
     result = await service.get_all_trails(

@@ -141,15 +141,14 @@ export default function ReadingTrail({
       try {
         // Reset fallback flag when student changes
         setHasTriedFallback(false);
-        
-        // First try to get default trails
+
+        // Fetch all trails available to the professional (own + default)
         const params: any = {};
         if (student?.age) {
           params.age_range_min = student.age;
           params.age_range_max = student.age;
         }
-        params.is_default = true;
-        
+
         await fetchTrails(params);
       } catch (error) {
         console.error("Error loading trails:", error);
@@ -162,9 +161,7 @@ export default function ReadingTrail({
   useEffect(() => {
     if (!isLoading && trails.length === 0 && !error && !hasTriedFallback) {
       setHasTriedFallback(true);
-      fetchTrails({
-        is_default: true,
-      });
+      fetchTrails();
     }
   }, [isLoading, trails.length, error, hasTriedFallback, fetchTrails]);
 
@@ -311,6 +308,28 @@ export default function ReadingTrail({
         </button>
       </div>
 
+      {/* Trail Selector */}
+      {trails.length > 1 && (
+        <div className="border-b border-black/10 bg-white px-4 py-2 flex gap-2 overflow-x-auto flex-shrink-0 scrollbar-hide">
+          {trails.map((trail) => (
+            <button
+              key={trail.id}
+              onClick={() => {
+                setSelectedTrailId(trail.id);
+                setSelectedTrailData(trail);
+              }}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors whitespace-nowrap ${
+                selectedTrailId === trail.id
+                  ? "bg-[#1CA8F3] text-white"
+                  : "bg-[#f0f0f0] text-black/70 hover:bg-[#e0e0e0]"
+              }`}
+            >
+              {trail.title}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto pb-6">
         {/* Section Header */}
@@ -334,8 +353,8 @@ export default function ReadingTrail({
                       <Checkbox
                         id="filter-read"
                         checked={filterRead}
-                        onCheckedChange={(checked) => {
-                          setFilterRead(checked as boolean);
+                        onCheckedChange={(checked: boolean | string) => {
+                          setFilterRead(!!checked);
                           if (checked) setFilterUnread(false);
                         }}
                       />

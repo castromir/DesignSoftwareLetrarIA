@@ -39,32 +39,38 @@ class BaseAIService(ABC):
         )
         return result.scalar_one_or_none()
 
-    async def _fetch_recent_recordings(
-        self, student_id: uuid.UUID, limit: int = 5
+    async def _fetch_all_recordings(
+        self,
+        student_id: uuid.UUID,
+        exclude_id: Optional[uuid.UUID] = None,
+        limit: int = 5,
     ) -> List[Recording]:
+        conditions = [
+            Recording.student_id == student_id,
+            Recording.transcription.isnot(None),
+        ]
+        if exclude_id is not None:
+            conditions.append(Recording.id != exclude_id)
         stmt = (
             select(Recording)
             .options(
                 selectinload(Recording.story),
                 selectinload(Recording.analysis),
             )
-            .where(
-                Recording.student_id == student_id,
-                Recording.transcription.isnot(None),
-            )
-            .order_by(Recording.recorded_at.desc())
+            .where(*conditions)
+            .order_by(Recording.recorded_at.asc())
             .limit(limit)
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def _fetch_recent_diagnostics(
+    async def _fetch_all_diagnostics(
         self, student_id: uuid.UUID, limit: int = 3
     ) -> List[Diagnostic]:
         result = await self.session.execute(
             select(Diagnostic)
             .where(Diagnostic.student_id == student_id)
-            .order_by(Diagnostic.created_at.desc())
+            .order_by(Diagnostic.created_at.asc())
             .limit(limit)
         )
         return list(result.scalars().all())
@@ -235,8 +241,8 @@ class BaseAIService(ABC):
         if not student:
             raise AIServiceError("Estudante não encontrado")
 
-        recordings = await self._fetch_recent_recordings(student_uuid)
-        diagnostics = await self._fetch_recent_diagnostics(student_uuid)
+        recordings = await self._fetch_all_recordings(student_uuid)
+        diagnostics = await self._fetch_all_diagnostics(student_uuid)
 
         context_sections = []
         if student.observations:
@@ -278,30 +284,42 @@ class BaseAIService(ABC):
         if not student:
             return None
 
-        diagnostics = await self._fetch_recent_diagnostics(recording.student_id)
-        previous_recordings = await self._fetch_recent_recordings(recording.student_id)
+        diagnostics = await self._fetch_all_diagnostics(recording.student_id)
+        previous_recordings = await self._fetch_all_recordings(
+            recording.student_id, exclude_id=recording.id
+        )
         diagnostics_text = self._format_diagnostics(diagnostics)
         recordings_text = self._format_recordings(previous_recordings)
         current_analysis_text = self._format_metrics(recording.analysis)
 
         context_sections = []
+        if student.age:
+            context_sections.append(f"Idade do aluno: {student.age} anos")
         if student.observations:
             context_sections.append(f"Observações do professor:\n{student.observations.strip()}")
         if diagnostics_text:
-            context_sections.append(f"Diagnósticos recentes:\n{diagnostics_text}")
+            context_sections.append(f"Diagnósticos (todos, ordem cronológica):\n{diagnostics_text}")
         if recordings_text:
-            context_sections.append(f"Leituras anteriores:\n{recordings_text}")
+            context_sections.append(
+                f"Histórico completo de leituras anteriores ({len(previous_recordings)} gravação(ões), ordem cronológica):\n{recordings_text}"
+            )
         if current_analysis_text:
             context_sections.append(f"Métricas da leitura atual:\n{current_analysis_text}")
         context_summary = "\n\n".join(context_sections) if context_sections else "Sem contexto adicional."
 
+        story_ref = ""
+        if recording.story and recording.story.content:
+            story_ref = f"\nTexto de referência lido:\n{recording.story.content.strip()}\n"
+
         data_section = (
             f"Aluno: {student.name} (idade: {student.age or 'não informada'})\n\n"
-            f"Nova gravação:\n"
+            f"Leitura atual:\n"
+            f"- Título: {recording.story.title if recording.story else 'Desconhecido'}\n"
             f"- Data/hora: {recording.recorded_at}\n"
             f"- Duração: {recording.duration_seconds:.1f} segundos\n"
-            f"- Transcrição completa:\n{recording.transcription.strip()}\n\n"
-            f"Contexto adicional:\n{context_summary}"
+            f"{story_ref}"
+            f"- Transcrição do aluno:\n{recording.transcription.strip()}\n\n"
+            f"Contexto do aluno:\n{context_summary}"
         )
 
         prompt = f"{READING_EVALUATOR_PROMPT}\n\n---\n\n{data_section}"
