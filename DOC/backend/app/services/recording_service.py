@@ -165,6 +165,17 @@ class RecordingService:
                 logger.info("[insight] IA gerou payload: type=%s priority=%s title=%r",
                             insight_payload.get("type"), insight_payload.get("priority"),
                             insight_payload.get("title"))
+                # Atualiza prosódia da análise com o score da IA (mais preciso que contagem de pontuação)
+                ai_prosody = insight_payload.get("prosody_score")
+                if ai_prosody is not None:
+                    analysis_query = await self.session.execute(
+                        select(RecordingAnalysis).where(RecordingAnalysis.recording_id == recording.id)
+                    )
+                    analysis = analysis_query.scalar_one_or_none()
+                    if analysis:
+                        analysis.prosody_score = ai_prosody
+                        logger.info("[insight] Prosódia atualizada pela IA: %.1f para recording=%s",
+                                    ai_prosody, recording.id)
             else:
                 logger.warning("[insight] IA retornou None — usando fallback algorítmico.")
                 insight_payload = await self._build_analysis_insight_payload(recording)
@@ -180,6 +191,7 @@ class RecordingService:
                 title=insight_payload["title"],
                 description=insight_payload["description"],
                 related_students=[student.id],
+                recording_id=recording.id,
             )
             await self.session.commit()
             logger.info("[insight] Insight salvo com sucesso para recording=%s.", recording.id)
@@ -599,15 +611,32 @@ class RecordingService:
                 if maybe_total and words_per_minute:
                     duration_value = (maybe_total / words_per_minute) * 60
 
+        # Busca apenas o insight vinculado a esta gravação específica
         insights_stmt = (
             select(AIInsight)
-            .where(
-                AIInsight.related_students.isnot(None),
-                AIInsight.related_students.contains([recording.student_id]),
-            )
+            .where(AIInsight.recording_id == recording.id)
             .order_by(AIInsight.created_at.desc())
+            .limit(1)
         )
         insights_result = await self.session.execute(insights_stmt)
+        raw_insights = insights_result.scalars().all()
+
+        # Fallback para dados legados (insights sem recording_id criados antes da migration)
+        if not raw_insights:
+            legacy_stmt = (
+                select(AIInsight)
+                .where(
+                    AIInsight.recording_id.is_(None),
+                    AIInsight.related_students.isnot(None),
+                    AIInsight.related_students.contains([recording.student_id]),
+                    AIInsight.created_at >= recording.recorded_at,
+                )
+                .order_by(AIInsight.created_at.asc())
+                .limit(1)
+            )
+            legacy_result = await self.session.execute(legacy_stmt)
+            raw_insights = legacy_result.scalars().all()
+
         insights: List[Dict[str, Any]] = [
             {
                 "id": str(insight.id),
@@ -617,7 +646,7 @@ class RecordingService:
                 "priority": insight.priority.value,
                 "created_at": insight.created_at,
             }
-            for insight in insights_result.scalars().all()
+            for insight in raw_insights
         ]
 
         if words_per_minute is None and transcription_word_count and recording.duration_seconds and recording.duration_seconds > 0:
@@ -659,4 +688,75 @@ class RecordingService:
             "improvement_points": improvement_points,
             "insights": insights,
         }
+
+    async def get_recordings_timeline(
+        self, story_id: str, student_id: str
+    ) -> List[Dict[str, Any]]:
+        story_uuid = uuid.UUID(story_id)
+        student_uuid = uuid.UUID(student_id)
+
+        recordings_stmt = (
+            select(Recording)
+            .options(selectinload(Recording.analysis))
+            .where(
+                Recording.story_id == story_uuid,
+                Recording.student_id == student_uuid,
+            )
+            .order_by(Recording.recorded_at.asc())
+        )
+        result = await self.session.execute(recordings_stmt)
+        recordings = result.scalars().all()
+
+        entries: List[Dict[str, Any]] = []
+        for rec in recordings:
+            analysis = rec.analysis
+            errors_count = 0
+            wpm = None
+            accuracy = None
+            prosody = None
+            fluency = None
+            overall = None
+
+            if analysis:
+                errors_count = len(analysis.errors_detected) if analysis.errors_detected else 0
+                wpm = analysis.speed_wpm
+                accuracy = analysis.accuracy_score
+                prosody = analysis.prosody_score
+                fluency = analysis.fluency_score
+                overall = analysis.overall_score
+
+            insight_stmt = (
+                select(AIInsight)
+                .where(AIInsight.recording_id == rec.id)
+                .order_by(AIInsight.created_at.desc())
+                .limit(1)
+            )
+            insight_result = await self.session.execute(insight_stmt)
+            insight_row = insight_result.scalar_one_or_none()
+
+            insight_data = None
+            if insight_row:
+                insight_data = {
+                    "id": str(insight_row.id),
+                    "title": insight_row.title,
+                    "description": insight_row.description,
+                    "type": insight_row.insight_type.value,
+                    "priority": insight_row.priority.value,
+                    "created_at": insight_row.created_at,
+                }
+
+            entries.append({
+                "recording_id": str(rec.id),
+                "recorded_at": rec.recorded_at,
+                "duration_seconds": rec.duration_seconds or 0,
+                "words_per_minute": wpm,
+                "accuracy_percentage": accuracy,
+                "prosody_score": prosody,
+                "fluency_score": fluency,
+                "overall_score": overall,
+                "errors_count": errors_count,
+                "insight": insight_data,
+            })
+
+        return entries
 

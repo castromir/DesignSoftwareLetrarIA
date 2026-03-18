@@ -93,3 +93,16 @@ class RecordingMetricsResponse(BaseModel):
     improvement_points: list[str] = Field(default_factory=list)
     insights: list[RecordingInsight] = Field(default_factory=list)
 
+
+class RecordingTimelineEntry(BaseModel):
+    recording_id: str
+    recorded_at: datetime
+    duration_seconds: float
+    words_per_minute: Optional[float] = None
+    accuracy_percentage: Optional[float] = None
+    prosody_score: Optional[float] = None
+    fluency_score: Optional[float] = None
+    overall_score: Optional[float] = None
+    errors_count: int = 0
+    insight: Optional[RecordingInsight] = None
+

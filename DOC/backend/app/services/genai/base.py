@@ -191,11 +191,21 @@ class BaseAIService(ABC):
             priority = InsightPriority(raw_priority)
         except ValueError:
             priority = InsightPriority.medium
+
+        prosody_score: Optional[float] = None
+        raw_prosody = payload.get("prosody_score")
+        if raw_prosody is not None:
+            try:
+                prosody_score = max(0.0, min(100.0, float(raw_prosody)))
+            except (TypeError, ValueError):
+                prosody_score = None
+
         return {
             "type": insight_type,
             "priority": priority,
             "title": title,
             "description": description,
+            "prosody_score": prosody_score,
         }
 
     # ------------------------------------------------------------------ #

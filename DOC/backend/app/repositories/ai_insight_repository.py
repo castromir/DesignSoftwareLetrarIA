@@ -19,6 +19,7 @@ class AIInsightRepository:
         title: str,
         description: str,
         related_students: Optional[List[UUID]] = None,
+        recording_id: Optional[UUID] = None,
         expires_at: Optional = None,
         is_read: bool = False,
     ) -> AIInsight:
@@ -29,6 +30,7 @@ class AIInsightRepository:
             title=title,
             description=description,
             related_students=related_students or [],
+            recording_id=recording_id,
             expires_at=expires_at,
             is_read=is_read,
         )

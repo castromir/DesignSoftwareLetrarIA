@@ -8,6 +8,7 @@ from app.schemas.recording import (
     RecordingResponse,
     RecordingListResponse,
     RecordingMetricsResponse,
+    RecordingTimelineEntry,
 )
 from app.utils.dependencies import get_db, get_current_active_user
 from app.models.user import User
@@ -98,6 +99,18 @@ async def list_recordings(
     )
     
     return result
+
+
+@router.get("/timeline", response_model=list[RecordingTimelineEntry])
+async def get_recordings_timeline(
+    story_id: str,
+    student_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Retorna a linha do tempo de gravações de um aluno para uma história específica."""
+    service = RecordingService(db)
+    return await service.get_recordings_timeline(story_id, student_id)
 
 
 @router.get("/{recording_id}", response_model=RecordingResponse)

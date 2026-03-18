@@ -18,7 +18,7 @@ interface Student {
 interface CreateTrailModalProps {
   student: Student | null;
   onBack: () => void;
-  onCreated: () => void;
+  onCreated: (newTrailId?: string) => void;
 }
 
 interface StoryDraft {
@@ -174,7 +174,7 @@ export default function CreateTrailModal({
     const result = await createTrail(payload);
     if (result) {
       toast.success("Trilha criada com sucesso!");
-      onCreated();
+      onCreated(result.id);
     }
   };
 

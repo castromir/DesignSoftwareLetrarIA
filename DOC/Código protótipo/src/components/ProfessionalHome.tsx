@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Settings,
@@ -30,6 +30,7 @@ import StudentProfile from "./StudentProfile";
 import ReadingTrail from "./ReadingTrail";
 import ReadingProgress from "./ReadingProgress";
 import RecordingsList from "./RecordingsList";
+import RecordingsTimeline from "./RecordingsTimeline";
 import StudentTracking from "./StudentTracking";
 import ExportReports from "./ExportReports";
 import EditStudentDialog from "./EditStudentDialog";
@@ -50,8 +51,9 @@ import {
 } from "./ui/alert-dialog";
 import { useStudents } from "../hooks/useStudents";
 import { useActivities } from "../hooks/useActivities";
+import { useTextLibrary } from "../hooks/useTextLibrary";
 import { useAuth } from "../contexts/AuthContext";
-import type { Student as StudentType, Activity, ActivityCreate, ActivityUpdate } from "../types";
+import type { Student as StudentType, Activity, ActivityCreate, ActivityUpdate, TextLibrary } from "../types";
 import { Alert, AlertDescription } from "./ui/alert";
 
 interface User {
@@ -63,16 +65,6 @@ interface User {
 interface ProfessionalHomeProps {
   user: User;
   onLogout: () => void;
-}
-
-// Using Student type from types/index.ts
-
-interface RecentReading {
-  id: number;
-  studentName: string;
-  bookTitle: string;
-  timeAgo: string;
-  progress: number;
 }
 
 export function ProfessionalHome({
@@ -87,7 +79,7 @@ export function ProfessionalHome({
     onLogout();
     navigate('/login', { replace: true });
   };
-  
+
   const {
     students,
     stats,
@@ -108,6 +100,9 @@ export function ProfessionalHome({
     deleteActivity,
   } = useActivities(professionalId);
 
+  const { texts, fetchTexts } = useTextLibrary();
+  useEffect(() => { fetchTexts(); }, [fetchTexts]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] =
     useState<StudentType | null>(null);
@@ -115,6 +110,7 @@ export function ProfessionalHome({
   const [showTrail, setShowTrail] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [showRecordings, setShowRecordings] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showStudentActivities, setShowStudentActivities] = useState(false);
@@ -135,165 +131,7 @@ export function ProfessionalHome({
   const [returnToActivitiesList, setReturnToActivitiesList] =
     useState(false);
   const [showTextReader, setShowTextReader] = useState(false);
-  const [selectedText, setSelectedText] = useState<{
-    id: number;
-    title: string;
-    subtitle: string;
-    content: string;
-  } | null>(null);
-
-  const textLibrary = [
-    {
-      id: 1,
-      title: "O Gatinho Curioso",
-      subtitle: "Letras trabalhadas: G, C, T, R",
-      tags: [
-        { name: "Histórias", color: "blue" },
-        { name: "Iniciante", color: "green" },
-      ],
-      content: `Era uma vez um gatinho chamado Mimi. Mimi era muito curioso e adorava explorar.
-
-Um dia, Mimi viu uma borboleta colorida no jardim. Ele correu atrás dela, pulando e brincando.
-
-A borboleta voou até uma árvore alta. Mimi tentou subir, mas era difícil. Ele miou pedindo ajuda.
-
-Sua dona Maria veio e o ajudou a descer. Mimi aprendeu que nem sempre é bom ser muito curioso.
-
-Agora Mimi é mais cuidadoso em suas aventuras pelo jardim.`,
-    },
-    {
-      id: 2,
-      title: "O Jardim da Vovó",
-      subtitle: "Letras trabalhadas: J, V, F, L",
-      tags: [
-        { name: "Natureza", color: "green" },
-        { name: "Iniciante", color: "green" },
-      ],
-      content: `A vovó Lurdes tem um jardim lindo. Lá tem muitas flores coloridas.
-
-Ela planta rosas vermelhas, margaridas brancas e girassóis amarelos.
-
-Todo dia ela rega as plantas com seu regador verde. As flores crescem bonitas e alegres.
-
-Os passarinhos gostam de visitar o jardim. Eles cantam e pulam de galho em galho.
-
-A vovó fica feliz vendo seu jardim florido. É o lugar mais bonito da casa.`,
-    },
-    {
-      id: 3,
-      title: "O Dia da Chuva",
-      subtitle: "Letras trabalhadas: CH, D, P, B",
-      tags: [
-        { name: "Cotidiano", color: "purple" },
-        { name: "Iniciante", color: "green" },
-      ],
-      content: `Pedro acordou e olhou pela janela. O céu estava cinza e começou a chover.
-
-As gotas de chuva batiam no vidro fazendo um barulho gostoso. Plim, plim, plim!
-
-Pedro pegou sua capa de chuva amarela e suas botas de borracha vermelhas.
-
-Ele saiu para brincar nas poças de água. Que divertido! Splash, splash!
-
-A chuva parou e apareceu um lindo arco-íris no céu. Pedro ficou encantado.`,
-    },
-    {
-      id: 4,
-      title: "A Festa de Aniversário",
-      subtitle: "Letras trabalhadas: F, N, S, B",
-      tags: [
-        { name: "Celebrações", color: "pink" },
-        { name: "Intermediário", color: "orange" },
-      ],
-      content: `Hoje é o aniversário de Sofia. Ela está fazendo oito anos!
-
-A casa está toda enfeitada com balões coloridos e bandeirinhas. Tem bolo de chocolate com morango.
-
-Os amigos chegaram trazendo presentes. Eles brincaram de dança das cadeiras e corrida do saco.
-
-Na hora do parabéns, todos cantaram bem alto. Sofia soprou as velinhas fazendo um pedido secreto.
-
-Foi a melhor festa do ano! Sofia agradeceu a todos pela presença e pelos lindos presentes.`,
-    },
-    {
-      id: 5,
-      title: "O Passeio no Parque",
-      subtitle: "Letras trabalhadas: P, C, R, QU",
-      tags: [
-        { name: "Natureza", color: "green" },
-        { name: "Intermediário", color: "orange" },
-      ],
-      content: `No domingo, a família de Lucas foi ao parque. O sol brilhava no céu azul.
-
-Lucas levou sua bola e sua bicicleta nova. Ele pedalou pelo caminho vendo as árvores e flores.
-
-Encontrou seus amigos no parquinho. Eles subiram no escorregador e brincaram no balanço.
-
-Depois, fizeram um piquenique na grama. Comeram sanduíches, frutas e suco gelado.
-
-No fim da tarde, todos voltaram para casa cansados mas muito felizes com o passeio.`,
-    },
-    {
-      id: 6,
-      title: "A Escola Nova",
-      subtitle: "Letras trabalhadas: SC, N, M, L",
-      tags: [
-        { name: "Escola", color: "blue" },
-        { name: "Intermediário", color: "orange" },
-      ],
-      content: `Marina estava nervosa. Era seu primeiro dia na escola nova.
-
-Ela colocou seu uniforme e arrumou a mochila com muito cuidado. Lápis, caderno e estojo novinho.
-
-Ao chegar na escola, a professora Ana a recebeu com um sorriso. A sala era colorida e acolhedora.
-
-Marina conheceu seus novos colegas. Eles foram muito gentis e a convidaram para brincar no recreio.
-
-No final do dia, Marina estava feliz. Tinha feito novos amigos e adorado sua escola nova.`,
-    },
-    {
-      id: 7,
-      title: "O Cachorro Herói",
-      subtitle: "Letras trabalhadas: CH, RR, LH, NH",
-      tags: [
-        { name: "Histórias", color: "blue" },
-        { name: "Avançado", color: "red" },
-      ],
-      content: `Rex era um cachorro corajoso que morava com a família Silva. Ele sempre cuidava da casa.
-
-Uma noite, Rex ouviu um barulho estranho. Ele latiu forte para acordar todos. Au! Au! Au!
-
-Havia fumaça saindo da cozinha. Um pano de prato tinha pegado fogo perto do fogão.
-
-O papai acordou rapidamente e apagou o fogo. Por sorte, ninguém se machucou.
-
-Todos agradeceram ao Rex. Ele tinha salvado a família! Rex ganhou um osso especial de recompensa.
-
-Desde então, Rex é conhecido no bairro como o cachorro herói que salvou sua família.`,
-    },
-    {
-      id: 8,
-      title: "A Viagem de Férias",
-      subtitle: "Letras trabalhadas: GU, QU, ÇÃO, SS",
-      tags: [
-        { name: "Aventuras", color: "purple" },
-        { name: "Avançado", color: "red" },
-      ],
-      content: `Nas férias de julho, Beatriz viajou com seus pais para a praia. Que emoção!
-
-Eles fizeram uma viagem longa de carro. Passaram por montanhas, túneis e pequenas cidades.
-
-Quando chegaram, Beatriz viu o mar pela primeira vez. Era enorme e brilhante!
-
-Ela brincou na areia construindo castelos, procurou conchinhas e mergulhou nas ondas.
-
-À noite, provaram comidas deliciosas em restaurantes à beira-mar. Tinha peixe fresco e camarão.
-
-Beatriz tirou muitas fotos para guardar as lembranças. Foi a melhor viagem da sua vida!
-
-Quando voltou para casa, ela já estava com saudade da praia e planejando a próxima aventura.`,
-    },
-  ];
+  const [selectedText, setSelectedText] = useState<TextLibrary | null>(null);
 
   const activitiesSummary = activities
     .filter(a => a.status === 'in_progress')
@@ -306,29 +144,6 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
       total: activity.student_ids?.length || 0,
     }));
 
-  const recentReadings: RecentReading[] = [
-    {
-      id: 1,
-      studentName: "Ana Clara",
-      bookTitle: "O Gato de Botas",
-      timeAgo: "há 15 min",
-      progress: 100,
-    },
-    {
-      id: 2,
-      studentName: "João Augusto",
-      bookTitle: "Chapeuzinho Vermelho",
-      timeAgo: "há 32 min",
-      progress: 75,
-    },
-    {
-      id: 3,
-      studentName: "Beatriz Lima",
-      bookTitle: "Os Três Porquinhos",
-      timeAgo: "há 1 hora",
-      progress: 100,
-    },
-  ];
 
   const filteredStudents = students.filter((student) =>
     student.name
@@ -376,10 +191,10 @@ Quando voltou para casa, ela já estava com saudade da praia e planejando a pró
     setShowTracking(true);
   };
 
-const handleViewStudentActivities = () => {
-  setProfileOpen(false);
-  setShowStudentActivities(true);
-};
+  const handleViewStudentActivities = () => {
+    setProfileOpen(false);
+    setShowStudentActivities(true);
+  };
 
   const handleViewDiagnosticFromProfile = () => {
     setProfileOpen(false);
@@ -413,10 +228,10 @@ const handleViewStudentActivities = () => {
     setProfileOpen(true);
   };
 
-const handleBackFromStudentActivities = () => {
-  setShowStudentActivities(false);
-  setProfileOpen(true);
-};
+  const handleBackFromStudentActivities = () => {
+    setShowStudentActivities(false);
+    setProfileOpen(true);
+  };
 
   const handleBackFromRecordings = () => {
     setShowRecordings(false);
@@ -587,13 +402,13 @@ const handleBackFromStudentActivities = () => {
   const handlePrintAllTexts = () => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      const textContent = textLibrary
+      const textContent = texts
         .map((text, index) => {
           return `
-            <div style="page-break-after: ${index === textLibrary.length - 1 ? 'auto' : 'always'}; padding: 20px;">
+            <div style="page-break-after: ${index === texts.length - 1 ? 'auto' : 'always'}; padding: 20px;">
               <h2>${text.title}</h2>
               <p><strong>${text.subtitle}</strong></p>
-              <p><strong>Tags:</strong> ${text.tags.map(t => t.name).join(', ')}</p>
+              <p><strong>Tags:</strong> ${(text.tags ?? []).map(t => t.name).join(', ')}</p>
               <hr />
               <div style="margin-top: 20px; white-space: pre-line;">${text.content}</div>
             </div>
@@ -621,13 +436,8 @@ const handleBackFromStudentActivities = () => {
     }
   };
 
-  const handleReadText = (text: typeof textLibrary[0]) => {
-    setSelectedText({
-      id: text.id,
-      title: text.title,
-      subtitle: text.subtitle,
-      content: text.content,
-    });
+  const handleReadText = (text: TextLibrary) => {
+    setSelectedText(text);
     setShowTextReader(true);
   };
 
@@ -700,23 +510,43 @@ const handleBackFromStudentActivities = () => {
     }
   };
 
-  // Show Recordings List fullscreen
-if (showRecordings && selectedStudent && selectedStory) {
+  // Show Recordings Timeline fullscreen
+  if (showTimeline && selectedStudent && selectedStory) {
     return (
-      <RecordingsList
-      student={selectedStudent}
+      <RecordingsTimeline
+        student={selectedStudent}
         storyId={selectedStory.id || selectedStory.storyId || ""}
         storyTitle={selectedStory.title || selectedStory.storyTitle || ""}
+        onBack={() => {
+          setShowTimeline(false);
+          setShowRecordings(true);
+        }}
+      />
+    );
+  }
+
+  // Show Recordings List fullscreen
+  if (showRecordings && selectedStudent && selectedStory) {
+    return (
+      <RecordingsList
+        student={selectedStudent}
+        storyId={selectedStory.id || selectedStory.storyId || ""}
+        storyTitle={selectedStory.title || selectedStory.storyTitle || ""}
+        storyContent={selectedStory.content || ""}
         onBack={handleBackFromRecordings}
+        onCompare={() => {
+          setShowRecordings(false);
+          setShowTimeline(true);
+        }}
       />
     );
   }
 
   // Show Reading Progress fullscreen
-if (showProgress && selectedStudent) {
+  if (showProgress && selectedStudent) {
     return (
       <ReadingProgress
-      student={selectedStudent}
+        student={selectedStudent}
         onBack={handleBackFromProgress}
         onViewRecordings={handleViewRecordings}
       />
@@ -724,29 +554,29 @@ if (showProgress && selectedStudent) {
   }
 
   // Show Student Tracking fullscreen
-if (showTracking && selectedStudent) {
+  if (showTracking && selectedStudent) {
     return (
       <StudentTracking
-      student={selectedStudent}
+        student={selectedStudent}
         onBack={handleBackFromTracking}
       />
     );
   }
 
-if (showStudentActivities && selectedStudent) {
-  return (
-    <StudentActivitiesPanel
-      student={selectedStudent}
-      onBack={handleBackFromStudentActivities}
-    />
-  );
-}
+  if (showStudentActivities && selectedStudent) {
+    return (
+      <StudentActivitiesPanel
+        student={selectedStudent}
+        onBack={handleBackFromStudentActivities}
+      />
+    );
+  }
 
   // Show Reading Trail fullscreen
-if (showTrail && selectedStudent) {
+  if (showTrail && selectedStudent) {
     return (
       <ReadingTrail
-      student={selectedStudent}
+        student={selectedStudent}
         onBack={handleBackFromTrail}
         onViewRecordings={handleViewRecordingsFromTrail}
       />
@@ -812,7 +642,7 @@ if (showTrail && selectedStudent) {
       <TextReader
         textId={selectedText.id}
         textTitle={selectedText.title}
-        textSubtitle={selectedText.subtitle}
+        textSubtitle={selectedText.subtitle ?? ''}
         textContent={selectedText.content}
         onBack={handleBackFromTextReader}
       />
@@ -857,7 +687,7 @@ if (showTrail && selectedStudent) {
         </div>
       </header>
 
-        {/* Main Content */}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
         {/* Error Alerts */}
         {studentsError && (
@@ -1226,7 +1056,7 @@ if (showTrail && selectedStudent) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {textLibrary.map((text) => (
+            {texts.map((text) => (
               <div
                 key={text.id}
                 className="bg-white rounded-[10px] border border-black/12 p-4 hover:shadow-md transition-shadow"
@@ -1241,7 +1071,7 @@ if (showTrail && selectedStudent) {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {text.tags.map((tag, index) => {
+                  {(text.tags ?? []).map((tag, index) => {
                     const tagColors = getTagColor(tag.color);
                     return (
                       <span
@@ -1254,7 +1084,7 @@ if (showTrail && selectedStudent) {
                   })}
                 </div>
 
-                <button 
+                <button
                   onClick={() => handleReadText(text)}
                   className="w-full flex items-center justify-between text-[#0056b9] hover:text-[#004080] transition-colors cursor-pointer group"
                 >

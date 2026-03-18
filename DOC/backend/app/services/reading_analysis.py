@@ -73,20 +73,23 @@ def analyze_reading(
                     }
                 )
 
+    # PPM: palavras corretas por minuto (WCPM — padrão de fluência oral)
     words_per_minute = None
-    if duration_seconds and duration_seconds > 0 and spoken_words:
+    if duration_seconds and duration_seconds > 0 and expected_words:
         minutes = duration_seconds / 60
         if minutes > 0:
-            words_per_minute = len(spoken_words) / minutes
+            words_per_minute = correct_words / minutes
 
+    # Acurácia: baseada no texto completo (palavras esperadas), não no que foi falado
     accuracy_score = None
-    if spoken_words:
-        accuracy_score = (correct_words / len(spoken_words)) * 100
+    if expected_words:
+        accuracy_score = max(0.0, min(100.0, (correct_words / len(expected_words)) * 100))
 
     fluency_score = None
     if words_per_minute is not None:
         fluency_score = max(0.0, min(100.0, (words_per_minute / 120) * 100))
 
+    # Prosódia: calculada via pontuação como fallback; será sobrescrita pelo score da IA quando disponível
     expected_punctuation = len(PUNCTUATION_PATTERN.findall(reference_text))
     spoken_punctuation = len(PUNCTUATION_PATTERN.findall(transcription))
     prosody_score = None

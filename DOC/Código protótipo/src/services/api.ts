@@ -29,6 +29,7 @@ import type {
   RecordingCreate,
   RecordingListResponse,
   RecordingMetrics,
+  RecordingTimelineEntry,
   AIInsight,
   AIInsightCreate,
   AIInsightUpdate,
@@ -529,6 +530,12 @@ export const recordingApi = {
 
   async getMetrics(recordingId: string) {
     return api.get<RecordingMetrics>(`/recordings/${recordingId}/metrics`);
+  },
+
+  async getTimeline(storyId: string, studentId: string) {
+    return api.get<RecordingTimelineEntry[]>(
+      `/recordings/timeline?story_id=${storyId}&student_id=${studentId}`
+    );
   },
 };
 

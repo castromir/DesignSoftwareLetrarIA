@@ -1,5 +1,5 @@
 import { ChevronLeft, MoreVertical, Printer, Volume2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import svgPaths from '../imports/svg-7k5czerodv';
 import { img } from '../imports/svg-a81u4';
 import { toast } from 'sonner@2.0.3';
@@ -10,22 +10,27 @@ interface Student {
   age?: number;
 }
 
+interface ErrorDetail {
+  expected: string;
+  spoken: string;
+}
+
 interface TextAnalysisProps {
   student: Student | null;
   storyTitle: string;
   storySubtitle: string;
-  storyContent: string;
-  incorrectWords?: string[]; // Array de palavras que foram lidas incorretamente
+  storyContent: string; // Texto original de referência
+  errorDetails?: ErrorDetail[]; // Pares {expected, spoken} do backend
   onBack: () => void;
   audioUrl?: string; // URL do áudio da gravação
 }
 
-export default function TextAnalysis({ 
-  student, 
-  storyTitle, 
-  storySubtitle, 
+export default function TextAnalysis({
+  student,
+  storyTitle,
+  storySubtitle,
   storyContent,
-  incorrectWords = [],
+  errorDetails = [],
   onBack,
   audioUrl
 }: TextAnalysisProps) {
@@ -33,60 +38,69 @@ export default function TextAnalysis({
   const [increasedSpacing, setIncreasedSpacing] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handlePrint = () => {
     window.print();
   };
 
   const handlePlayRecording = () => {
+    if (!audioUrl) {
+      toast.error('Áudio não disponível para esta gravação');
+      return;
+    }
+    if (!audioRef.current) {
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.onended = () => setIsPlaying(false);
+    }
     if (isPlaying) {
-      // Pausar áudio
+      audioRef.current.pause();
       setIsPlaying(false);
-      toast.info('Gravação pausada');
     } else {
-      // Reproduzir áudio
+      audioRef.current.play().catch(() => toast.error('Erro ao reproduzir o áudio'));
       setIsPlaying(true);
-      toast.success('Reproduzindo gravação...');
-      
-      // Simular fim da reprodução após alguns segundos
-      setTimeout(() => {
-        setIsPlaying(false);
-      }, 3000);
     }
   };
 
-  // Função para renderizar o texto com palavras incorretas destacadas
-  const renderTextWithHighlights = (text: string) => {
-    if (incorrectWords.length === 0) {
-      return text;
-    }
+  // Constrói set de palavras incorretas (expected com erro)
+  const incorrectWordSet = new Set(
+    errorDetails
+      .filter(e => e.expected && e.spoken !== e.expected)
+      .map(e => e.expected.toLowerCase())
+  );
+  const hasMask = errorDetails.length > 0;
 
-    // Criar uma regex que match qualquer das palavras incorretas
-    const pattern = new RegExp(
-      `\\b(${incorrectWords.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
-      'gi'
-    );
+  // Renderiza o texto original com máscara verde (correto) / vermelho (incorreto)
+  const renderTextWithMask = (text: string) => {
+    // Tokeniza mantendo pontuação e espaços separados das palavras
+    const tokens = text.split(/(\b[A-Za-zÀ-ÖØ-öø-ÿ']+\b)/);
 
-    const parts = text.split(pattern);
-    
-    return parts.map((part, index) => {
-      const isIncorrect = incorrectWords.some(
-        word => part.toLowerCase() === word.toLowerCase()
+    return tokens.map((token, index) => {
+      const isWord = /^[A-Za-zÀ-ÖØ-öø-ÿ']+$/.test(token);
+      if (!isWord) return <span key={index}>{token}</span>;
+
+      if (!hasMask) return <span key={index}>{token}</span>;
+
+      const isIncorrect = incorrectWordSet.has(token.toLowerCase());
+      return (
+        <span
+          key={index}
+          title={isIncorrect ? (() => {
+            const err = errorDetails.find(
+              e => e.expected.toLowerCase() === token.toLowerCase()
+            );
+            return err?.spoken ? `Lido como: "${err.spoken}"` : 'Palavra omitida';
+          })() : undefined}
+          className="inline rounded-[3px] px-[1px] cursor-default"
+          style={{
+            backgroundColor: isIncorrect
+              ? 'rgba(239, 68, 68, 0.35)'
+              : 'rgba(34, 197, 94, 0.30)',
+          }}
+        >
+          {token}
+        </span>
       );
-      
-      if (isIncorrect) {
-        return (
-          <span
-            key={index}
-            className="inline-block px-1 rounded-[3px]"
-            style={{ backgroundColor: 'rgba(255, 60, 60, 0.53)' }}
-          >
-            {part}
-          </span>
-        );
-      }
-      
-      return part;
     });
   };
 
@@ -194,23 +208,44 @@ export default function TextAnalysis({
         </div>
       </div>
 
-      {/* Subtitle with letters */}
+      {/* Subtitle + Legenda */}
       <div className="px-4 pt-2 pb-3 print:hidden">
-        <p className="text-[14px] font-semibold text-[#003b80]">
+        <p className="text-[14px] font-semibold text-[#003b80] mb-2">
           {storySubtitle}
         </p>
+        {hasMask && (
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-4 h-4 rounded-[3px]"
+                style={{ backgroundColor: 'rgba(34, 197, 94, 0.40)' }}
+              />
+              <span className="text-[12px] text-black/60">Palavra correta</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-4 h-4 rounded-[3px]"
+                style={{ backgroundColor: 'rgba(239, 68, 68, 0.45)' }}
+              />
+              <span className="text-[12px] text-black/60">Palavra incorreta</span>
+            </div>
+            <span className="text-[11px] text-black/40">
+              Passe o cursor sobre a palavra em vermelho para ver o que foi lido
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-24 print:pb-0">
         <div className="bg-white rounded-[10px] shadow-[0px_2px_10px_0px_rgba(0,0,0,0.25)] p-5 print:shadow-none">
-          <div 
+          <div
             className={`text-[16px] font-medium text-black ${
               eyeFatigueMode ? 'bg-[#f5f0e8] text-[#2b2b2b]' : ''
             } ${
               increasedSpacing ? 'leading-[2.5]' : 'leading-[1.875]'
             }`}
-            style={eyeFatigueMode ? { 
+            style={eyeFatigueMode ? {
               filter: 'contrast(0.9)',
               fontFamily: 'Inter, sans-serif'
             } : {}}
@@ -218,7 +253,7 @@ export default function TextAnalysis({
             {storyContent.split('\n').map((paragraph, idx) => (
               paragraph.trim() && (
                 <p key={idx} className="mb-4 last:mb-0">
-                  {renderTextWithHighlights(paragraph.trim())}
+                  {renderTextWithMask(paragraph.trim())}
                 </p>
               )
             ))}

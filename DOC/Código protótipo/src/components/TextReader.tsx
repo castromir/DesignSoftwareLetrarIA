@@ -4,7 +4,7 @@ import svgPaths from '../imports/svg-7k5czerodv';
 import { img } from '../imports/svg-a81u4';
 
 interface TextReaderProps {
-  textId: number;
+  textId: string;
   textTitle: string;
   textSubtitle: string;
   textContent: string;

@@ -16,7 +16,9 @@ interface RecordingsListProps {
   student: Student | null;
   storyId: string;
   storyTitle: string;
+  storyContent?: string; // Texto original da história para análise textual
   onBack: () => void;
+  onCompare?: () => void;
 }
 
 function PlayIcon() {
@@ -428,14 +430,16 @@ export default function RecordingsList({
   student,
   storyId,
   storyTitle,
+  storyContent = "",
   onBack,
+  onCompare,
 }: RecordingsListProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showTextAnalysis, setShowTextAnalysis] = useState(false);
   const [recordings, setRecordings] = useState<RecordingWithState[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
+  const [selectedRecording, setSelectedRecording] = useState<RecordingWithState | null>(null);
 
   useEffect(() => {
     const loadRecordings = async () => {
@@ -586,8 +590,9 @@ export default function RecordingsList({
         student={studentForAnalysis}
         storyTitle={storyTitle}
         storySubtitle="Análise de leitura"
-        storyContent={selectedRecording.transcription || ""}
-        incorrectWords={[]}
+        storyContent={storyContent || selectedRecording.transcription || ""}
+        errorDetails={selectedRecording.errorsDetected}
+        audioUrl={selectedRecording.audio_url || undefined}
         onBack={() => setShowTextAnalysis(false)}
       />
     );
@@ -664,7 +669,7 @@ export default function RecordingsList({
       {recordings.length > 1 && (
         <div className="border-t border-[#2A7AF2]/60 bg-[#f0f0f0] px-4 py-4 flex-shrink-0">
           <div className="max-w-md mx-auto">
-            <button className="w-full bg-[#4084dd] rounded-[10px] h-[42.535px] flex items-center justify-center gap-2 hover:bg-[#3074cd] transition-colors">
+            <button onClick={onCompare} className="w-full bg-[#4084dd] rounded-[10px] h-[42.535px] flex items-center justify-center gap-2 hover:bg-[#3074cd] transition-colors">
               <svg
                 className="w-5 h-5"
                 fill="none"

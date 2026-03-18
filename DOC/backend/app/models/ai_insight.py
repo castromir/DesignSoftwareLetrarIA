@@ -6,6 +6,7 @@ from app.database import Base
 import enum
 
 
+
 class InsightType(str, enum.Enum):
     attention_needed = "attention_needed"
     progress = "progress"
@@ -28,6 +29,7 @@ class AIInsight(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     related_students = Column(ARRAY(UUID(as_uuid=True)), nullable=True)
+    recording_id = Column(UUID(as_uuid=True), ForeignKey("recordings.id", ondelete="SET NULL"), nullable=True, index=True)
     is_read = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=True)

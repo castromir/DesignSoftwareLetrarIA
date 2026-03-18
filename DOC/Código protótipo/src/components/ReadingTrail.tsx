@@ -264,9 +264,12 @@ export default function ReadingTrail({
       <CreateTrailModal
         student={student}
         onBack={() => setShowCreateTrail(false)}
-        onCreated={() => {
+        onCreated={(newTrailId) => {
           setShowCreateTrail(false);
-          fetchTrails({ is_default: true });
+          if (newTrailId) {
+            setSelectedTrailId(newTrailId);
+          }
+          fetchTrails();
         }}
       />
     );

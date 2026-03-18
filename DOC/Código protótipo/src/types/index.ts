@@ -500,6 +500,19 @@ export interface RecordingMetrics {
 export type InsightType = "attention_needed" | "progress" | "suggestion";
 export type InsightPriority = "low" | "medium" | "high";
 
+export interface RecordingTimelineEntry {
+  recording_id: string;
+  recorded_at: string;
+  duration_seconds: number;
+  words_per_minute?: number;
+  accuracy_percentage?: number;
+  prosody_score?: number;
+  fluency_score?: number;
+  overall_score?: number;
+  errors_count: number;
+  insight?: RecordingInsight;
+}
+
 export interface AIInsight {
   id: string;
   professional_id: string;
@@ -595,7 +608,7 @@ export interface TextLibrary {
   age_range_min?: number;
   age_range_max?: number;
   letters_focus?: string[];
-  tags?: Record<string, unknown>;
+  tags?: Array<{ name: string; color: string }>;
   word_count?: number;
   is_public: boolean;
   created_by?: string;

@@ -17,6 +17,8 @@ from app.models.user import UserRole
 from app.models.recording import Recording, RecordingAnalysis
 from app.models.activity import StudentActivity, ActivityStatus
 from app.models.ai_insight import AIInsight
+from app.models.trail import Trail
+from app.models.progress import StudentTrailProgress
 from typing import Optional, List
 import uuid
 from datetime import date
@@ -52,6 +54,21 @@ class StudentService:
         }
 
         student = await self.student_repository.create(student_data)
+
+        # Atribuir todas as trilhas padrão ao novo aluno
+        default_trails_result = await self.session.execute(
+            select(Trail).where(Trail.is_default == True)
+        )
+        default_trails = default_trails_result.scalars().all()
+        for trail in default_trails:
+            self.session.add(StudentTrailProgress(
+                student_id=student.id,
+                trail_id=trail.id,
+                completed_stories=[],
+                progress_percentage=0.0,
+            ))
+        if default_trails:
+            await self.session.commit()
 
         return StudentResponse(
             id=str(student.id),
