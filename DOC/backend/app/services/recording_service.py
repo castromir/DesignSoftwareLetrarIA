@@ -657,17 +657,6 @@ class RecordingService:
             if minutes > 0:
                 words_per_minute = transcription_word_count / minutes
 
-        if accuracy is None and transcription_word_count:
-            accuracy = max(
-                0.0,
-                min(
-                    100.0,
-                    (transcription_word_count - errors_count)
-                    / transcription_word_count
-                    * 100.0,
-                ),
-            )
-
         if (duration_value is None or duration_value <= 0) and words_per_minute and transcription_word_count:
             duration_value = (transcription_word_count / words_per_minute) * 60
 
