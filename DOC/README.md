@@ -1,10 +1,3 @@
-# Protótipos
-
-Grupo 4 : https://lovable.dev/projects/53a874af-4b34-4642-9650-1aa87a038300
-
-Grupo 2 : https://www.figma.com/design/HD1vK6dSyNRxFuPE80wTmp/Prot%C3%B3tipos-de-tela---Hist%C3%B3rias-de-usu%C3%A1rio?node-id=0-1&p=f&t=NPTbITXMapNmKEhC-0
-
----
 
 # Letrar IA - Guia de Instalação e Execução
 
@@ -55,11 +48,11 @@ cd DesignSoftwareLetrarIA/DOC
    cd ..
    ```
 
-### Frontend (`DOC/Código protótipo/.env.local`)
+### Frontend (`DOC/web/.env.local`)
 
 1. Crie o arquivo de ambiente:
    ```bash
-   cd "Código protótipo"
+   cd web
    echo "VITE_API_URL=http://localhost:8888" > .env.local
    cd ..
    ```
@@ -116,7 +109,7 @@ Certifique-se de que a pasta `uploads/recordings` seja gravável; ela é criada 
 ### Frontend
 
 ```bash
-cd "Código protótipo"
+cd web
 npm install
 npm run dev -- --host --port 5174
 ```
@@ -368,3 +361,4 @@ docker exec letraria-backend-dev python /app/run_seed.py
 - As alterações no código do backend e frontend são aplicadas automaticamente devido ao hot reload configurado
 - Os dados do banco são persistidos em volumes Docker e não serão perdidos ao reiniciar os containers
 - Para limpar completamente e recriar tudo, use `docker-compose -f docker-compose.dev.yml down -v` e depois `docker-compose -f docker-compose.dev.yml up -d`
+# Letrar.ia
